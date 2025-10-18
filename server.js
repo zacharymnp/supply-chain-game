@@ -20,12 +20,6 @@ io.on("connection", (socket) => {
     console.log("A player connected");
 });
 
-// -------------------- STATIC FILES --------------------
-app.use(express.static(path.join(__dirname, "frontend/dist")));
-app.get(/^\/.*$/, (request, response) => {
-    response.sendFile(path.join(__dirname, "frontend/dist/index.html"));
-});
-
 // -------------------- HELPERS --------------------
 function requireRole(roles) {
     return (request, response, next) => {
@@ -258,6 +252,12 @@ app.post("/api/advanceWeek", requireRole(["ADMIN"]), async (request, response) =
         console.error(error);
         response.status(500).json({ error: "Server error" });
     }
+});
+
+// -------------------- STATIC FILES --------------------
+app.use(express.static(path.join(__dirname, "frontend/dist")));
+app.get(/^\/(?!api).*$/, (request, response) => {
+    response.sendFile(path.join(__dirname, "frontend/dist/index.html"));
 });
 
 // -------------------- START SERVER --------------------

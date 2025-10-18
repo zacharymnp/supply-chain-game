@@ -46,15 +46,12 @@ export default function App() {
 
         fetch("/api/rooms", {headers: {Authorization: `Bearer ${token}`}})
             .then((response) => response.json())
-            .then((data) => {
-                console.log("Fetched rooms:", data);
-                setAvailableRooms(data.rooms);
-            })
+            .then((data) => setAvailableRooms(data.rooms))
             .catch((error) => {
                 console.error("Failed to load rooms:", error);
                 setError("Failed to load rooms");
             });
-    });
+    }, [token]);
 
 // -------------------- CONNECT SOCKET --------------------
     useEffect(() => {
