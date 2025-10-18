@@ -3,7 +3,8 @@ import { io, Socket } from "socket.io-client";
 
 import { GameView } from "./views/GameView";
 import { AdminView } from "./views/AdminView";
-import type { Role, GameState } from "./types";
+import type { GameState } from "./types";
+import { Role } from "./types";
 
 let socket: Socket | null = null;
 
@@ -112,7 +113,7 @@ export default function App() {
                                 event.preventDefault();
                                 const form = event.currentTarget;
                                 const selectedRoom = (form.elements.namedItem("roomCode") as HTMLSelectElement).value;
-                                const selectedRole = (form.elements.namedItem("role") as HTMLSelectElement).value;
+                                const selectedRole = (form.elements.namedItem("role") as HTMLSelectElement).value.toUpperCase() as Role;
                                 setRoomCode(selectedRoom);
                                 setRole(selectedRole);
                             }}
@@ -148,7 +149,7 @@ export default function App() {
     if (!gameState) return <p>Loading game state...</p>;
     return (
         <div style={{ padding: "2rem" }}>
-            {role === "admin" ? (
+            {role === Role.ADMIN ? (
                 <AdminView token={token} roomCode={roomCode} gameState={gameState} />
             ) : (
                 <GameView token={token} roomCode={roomCode} role={role as Role} gameState={gameState} />

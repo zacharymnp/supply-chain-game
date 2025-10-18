@@ -38,7 +38,7 @@ model Game {
 model Order {
   id        Int      @id @default(autoincrement())
   gameId    Int
-  role      String
+  role      Role
   amount    Int
   week      Int
   createdAt DateTime @default(now())

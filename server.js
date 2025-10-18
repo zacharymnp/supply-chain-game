@@ -5,7 +5,7 @@ const path = require("path");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { PrismaClient } = require("@prisma/client");
+const { PrismaClient, Role } = require("@prisma/client");
 const prisma = new PrismaClient();
 const SECRET = process.env.JWT_SECRET || "supersecretpassword";
 
@@ -34,12 +34,14 @@ function requireRole(roles) {
         const token = header.split(" ")[1];
         try {
             const decoded = jwt.verify(token, SECRET);
-            if (!roles.includes(decoded.role)) {
+            const userRole = decoded.role.toUpperCase();
+            if (!roles.includes(userRole)) {
                 return response.status(403).json({ error: "Forbidden" });
             }
             request.user = decoded;
             next();
-        } catch {
+        }
+        catch {
             response.status(401).json({ error: "Invalid token" });
         }
     };
@@ -49,7 +51,7 @@ function requireRole(roles) {
 /**
  * Generates a new game with a given roomCode
  */
-app.post("/api/createGame", requireRole(["admin"]), async (request, response) => {
+app.post("/api/createGame", requireRole([Role.ADMIN]), async (request, response) => {
     const { roomCode } = request.body;
 
     try {
@@ -96,7 +98,7 @@ app.post("/api/login", async (request, response) => {
         const ok = await bcrypt.compare(password, user.password);
         if (!ok) return response.status(401).json({ error: "Invalid credentials" });
 
-        const token = jwt.sign({ role: user.role, id: user.id }, SECRET, { expiresIn: "8h" });
+        const token = jwt.sign({ role: user.role.toUpperCase(), id: user.id }, SECRET, { expiresIn: "8h" });
         response.json({ token, role: user.role });
     }
     catch (error) {
@@ -153,14 +155,18 @@ app.post("/api/order", async (request, response) => {
     try {
         const game = await prisma.game.findUnique({ where: { roomCode } });
         if (!game) return response.status(404).json({ error: "Game not found" });
+
+        const normalizedRole = role.toUpperCase();
+        const jsonRole = role.toLowerCase();
+
         const gameState = JSON.parse(game.state);
 
         await prisma.order.create({
-            data: { gameId: game.id, role, amount, week },
+            data: { gameId: game.id, normalizedRole, amount, week },
         });
 
-        const newOrder = { role, amount, weeksUntilArrival: 2};
-        gameState.roles[role].incomingOrders.push(newOrder);
+        const newOrder = { jsonRole, amount, weeksUntilArrival: 2};
+        gameState.roles[jsonRole].incomingOrders.push(newOrder);
 
         await prisma.game.update({
             where: { id: game.id },
@@ -179,7 +185,7 @@ app.post("/api/order", async (request, response) => {
 /**
  * Admins advance the week in a particular room
  */
-app.post("/api/advanceWeek", requireRole(["admin"]), async (request, response) => {
+app.post("/api/advanceWeek", requireRole(["ADMIN"]), async (request, response) => {
     const { roomCode } = request.body;
 
     try {

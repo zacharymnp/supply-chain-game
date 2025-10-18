@@ -1,7 +1,14 @@
-export type Role = "factory" | "distributor" | "wholesaler" | "retailer" | "admin";
+export const Role = {
+    ADMIN: "ADMIN",
+    RETAILER: "RETAILER",
+    WHOLESALER: "WHOLESALER",
+    DISTRIBUTOR: "DISTRIBUTOR",
+    FACTORY: "FACTORY",
+} as const;
+export type Role = typeof Role[keyof typeof Role];
 
 export interface Order {
-    role: string;
+    role: Role;
     amount: number;
     weeksUntilArrival: number; // counts down from 2 to 0
 }
@@ -15,11 +22,5 @@ export interface RoleState {
 export interface GameState {
     week: number;
     customerOrder: number[];
-    roles: {
-        retailer: RoleState;
-        wholesaler: RoleState;
-        distributor: RoleState;
-        factory: RoleState;
-        admin: RoleState; // TODO: need to figure out how not to have this
-    };
+    roles: Record<Role, RoleState>;
 }
