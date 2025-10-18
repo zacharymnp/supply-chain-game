@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  RETAILER
+  WHOLESALER
+  DISTRIBUTOR
+  FACTORY
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  role      Role
+  createdAt DateTime @default(now())
+  gameId    Int?
+  game      Game?    @relation(fields: [gameId], references: [id])
+}
+
+model Game {
+  id        Int      @id @default(autoincrement())
+  roomCode  String   @unique
+  week      Int      @default(1)
+  state     Json
+  createdAt DateTime @default(now())
+  orders    Order[]
+  users     User[]
+}
+
+model Order {
+  id        Int      @id @default(autoincrement())
+  gameId    Int
+  role      String
+  amount    Int
+  week      Int
+  createdAt DateTime @default(now())
+  game      Game     @relation(fields: [gameId], references: [id])
+}

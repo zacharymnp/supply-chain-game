@@ -11,9 +11,11 @@ export default function App() {
     const [gameState, setGameState] = useState<GameState | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [role, setRole] = useState<string | null>(null);
+    const [roomCode, setRoomCode] = useState<string>("");
+    const [availableRooms, setAvailableRooms] = useState<string[]>([]);
     const [error, setError] = useState<string>("");
 
-    // Handle login
+// -------------------- LOGIN --------------------
     async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         const form = event.currentTarget;
@@ -37,17 +39,38 @@ export default function App() {
         setError("");
     }
 
-    // Connect to socket and get game state prior to login
+// -------------------- FETCH ROOMS --------------------
     useEffect(() => {
         if (!token) return;
 
-        fetch("/api/state", {
+        fetch("/api/rooms", {headers: {Authorization: `Bearer ${token}`}})
+            .then((response) => response.json())
+            .then((data) => {
+                console.log("Fetched rooms:", data);
+                setAvailableRooms(data.rooms);
+            })
+            .catch((error) => {
+                console.error("Failed to load rooms:", error);
+                setError("Failed to load rooms");
+            });
+    });
+
+// -------------------- CONNECT SOCKET --------------------
+    useEffect(() => {
+        if (!token || !roomCode) return;
+
+        fetch(`/api/state/${roomCode}`, {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((response) => response.json())
-            .then((data: GameState) => setGameState(data));
+            .then((data: GameState) => setGameState(data))
+            .catch((error) => {
+                console.error("Failed to load game state:", error);
+                setError("Failed to load game state")
+            });
 
-        socket = io("http://localhost:5000");
+        // Connect websocket
+        socket = io("http://localhost:5000", { query: { roomCode } });
         socket.on("stateUpdate", (newState: GameState) => {
             setGameState(newState);
         });
@@ -55,15 +78,15 @@ export default function App() {
         return () => {
             socket?.disconnect();
         };
-    }, [token]);
+    }, [token, roomCode]);
 
-    // Prior to login, show login screen
+// -------------------- LOGIN SCREEN --------------------
     if (!token) {
         return (
             <div style={{ padding: "2rem" }}>
                 <h1>Supply Chain Game Login</h1>
                 <form onSubmit={handleLogin}>
-                    <input name="username" placeholder="Role (e.g. retailer)" required />
+                    <input name="username" placeholder="Username" required />
                     <input name="password" type="password" placeholder="Password" required />
                     <button type="submit">Login</button>
                 </form>
@@ -72,14 +95,63 @@ export default function App() {
         );
     }
 
-    // ✅ After login, render correct view
+// -------------------- ROOM SELECTION --------------------
+    if (!token || !roomCode) {
+        if (role === "admin") {
+            return <AdminView token={token}/>;
+        }
+        else {
+            return (
+                <div style={{ padding: "2rem" }}>
+                    <h2>Select Room & Role</h2>
+                    {availableRooms.length === 0 ? (
+                        <p>No active rooms. Please wait for an admin to create one.</p>
+                    ) : (
+                        <form
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                const form = event.currentTarget;
+                                const selectedRoom = (form.elements.namedItem("roomCode") as HTMLSelectElement).value;
+                                const selectedRole = (form.elements.namedItem("role") as HTMLSelectElement).value;
+                                setRoomCode(selectedRoom);
+                                setRole(selectedRole);
+                            }}
+                        >
+                            <label>
+                                Room:
+                                <select name="roomCode" required>
+                                    {availableRooms.map((room) => (
+                                        <option key={room} value={room}>
+                                            {room}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <label>
+                                Role:
+                                <select name="role" required>
+                                    <option value="retailer">Retailer</option>
+                                    <option value="wholesaler">Wholesaler</option>
+                                    <option value="distributor">Distributor</option>
+                                    <option value="factory">Factory</option>
+                                </select>
+                            </label>
+                            <button type="submit">Join Game</button>
+                        </form>
+                    )}
+                </div>
+            );
+        }
+    }
+
+// -------------------- GAME VIEW --------------------
     if (!gameState) return <p>Loading game state...</p>;
     return (
         <div style={{ padding: "2rem" }}>
             {role === "admin" ? (
-                <AdminView token={token} gameState={gameState} />
+                <AdminView token={token} roomCode={roomCode} gameState={gameState} />
             ) : (
-                <GameView token={token} role={role as Role} gameState={gameState} />
+                <GameView token={token} roomCode={roomCode} role={role as Role} gameState={gameState} />
 
             )}
         </div>
