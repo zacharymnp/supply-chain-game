@@ -1,5 +1,5 @@
 const bcrypt = require("bcrypt");
-const { PrismaClient } = require("@prisma/client");
+const { PrismaClient, Role } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 async function main() {
@@ -22,15 +22,13 @@ async function main() {
     });
 
     const users = [
-        { username: "retailer", password: "retailer123", role: prisma.Role.RETAILER },
-        { username: "wholesaler", password: "wholesaler123", role: prisma.Role.WHOLESALER },
-        { username: "distributor", password: "distributor123", role: prisma.Role.DISTRIBUTOR },
-        { username: "factory", password: "factory123", role: prisma.Role.FACTORY },
-        { username: "admin", password: "admin123", role: prisma.Role.ADMIN },
+        { username: "retailer", password: "retailer123", role: Role.RETAILER },
+        { username: "wholesaler", password: "wholesaler123", role: Role.WHOLESALER },
+        { username: "distributor", password: "distributor123", role: Role.DISTRIBUTOR },
+        { username: "factory", password: "factory123", role: Role.FACTORY },
+        { username: "admin", password: "admin123", role: Role.ADMIN },
     ];
-
-    console.log(users);
-
+    
     for (const user of users) {
         await prisma.user.create({
             data: {
