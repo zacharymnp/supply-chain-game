@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 
-import { GameView } from "./views/GameView";
-import { AdminView } from "./views/AdminView";
+import { PlayerGameView } from "./views/PlayerGameView.tsx";
+import { PlayerLobbyView } from "./views/PlayerLobbyView.tsx";
+import { AdminLobbyView } from "./views/AdminLobbyView.tsx";
+import { AdminGameView } from "./views/AdminGameView.tsx";
+
 import type { GameState } from "./types";
 import { Role } from "./types";
 
@@ -47,10 +50,7 @@ export default function App() {
         fetch("/api/rooms", {headers: {Authorization: `Bearer ${token}`}})
             .then((response) => response.json())
             .then((data) => setAvailableRooms(data.rooms))
-            .catch((error) => {
-                console.error("Failed to load rooms:", error);
-                setError("Failed to load rooms");
-            });
+            .catch(() => setError("Failed to load rooms"));
     }, [token]);
 
 // -------------------- CONNECT SOCKET --------------------
@@ -62,10 +62,7 @@ export default function App() {
         })
             .then((response) => response.json())
             .then((data: GameState) => setGameState(data))
-            .catch((error) => {
-                console.error("Failed to load game state:", error);
-                setError("Failed to load game state")
-            });
+            .catch(() => setError("Failed to load game state"));
 
         // Connect websocket
         socket = io("http://localhost:5000", { query: { roomCode } });
@@ -93,65 +90,42 @@ export default function App() {
         );
     }
 
-// -------------------- ROOM SELECTION --------------------
-    if (!token || !roomCode) {
-        if (role === "admin") {
-            return <AdminView token={token}/>;
+// -------------------- LOBBY VIEWS --------------------
+    if (!roomCode) {
+        if (role === "ADMIN") {
+            return (
+                <AdminLobbyView
+                    token={token}
+                    availableRooms={availableRooms}
+                    onRoomSelect={setRoomCode}
+                    refreshRooms={() => {
+                        fetch("/api/rooms", { headers: { Authorization: `Bearer ${token}` } })
+                            .then((response) => response.json())
+                            .then((data) => setAvailableRooms(data.rooms))
+                            .catch(() => setError("Failed to load rooms"));
+                    }}
+                />
+            );
         }
         else {
             return (
-                <div style={{ padding: "2rem" }}>
-                    <h2>Select Room & Role</h2>
-                    {availableRooms.length === 0 ? (
-                        <p>No active rooms. Please wait for an admin to create one.</p>
-                    ) : (
-                        <form
-                            onSubmit={(event) => {
-                                event.preventDefault();
-                                const form = event.currentTarget;
-                                const selectedRoom = (form.elements.namedItem("roomCode") as HTMLSelectElement).value;
-                                const selectedRole = (form.elements.namedItem("role") as HTMLSelectElement).value.toUpperCase() as Role;
-                                setRoomCode(selectedRoom);
-                                setRole(selectedRole);
-                            }}
-                        >
-                            <label>
-                                Room:
-                                <select name="roomCode" required>
-                                    {availableRooms.map((room) => (
-                                        <option key={room} value={room}>
-                                            {room}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
-                            <label>
-                                Role:
-                                <select name="role" required>
-                                    <option value="retailer">Retailer</option>
-                                    <option value="wholesaler">Wholesaler</option>
-                                    <option value="distributor">Distributor</option>
-                                    <option value="factory">Factory</option>
-                                </select>
-                            </label>
-                            <button type="submit">Join Game</button>
-                        </form>
-                    )}
-                </div>
+                <PlayerLobbyView
+                    availableRooms={availableRooms}
+                    onRoomSelect={(selectedRoom, selectedRole) => {
+                        setRoomCode(selectedRoom);
+                        setRole(selectedRole);
+                    }}
+                />
             );
         }
     }
 
-// -------------------- GAME VIEW --------------------
+// -------------------- GAME VIEWS --------------------
     if (!gameState) return <p>Loading game state...</p>;
-    return (
-        <div style={{ padding: "2rem" }}>
-            {role === Role.ADMIN ? (
-                <AdminView token={token} roomCode={roomCode} gameState={gameState} />
-            ) : (
-                <GameView token={token} roomCode={roomCode} role={role as Role} gameState={gameState} />
-
-            )}
-        </div>
-    );
+    if (role === "ADMIN") {
+        return <AdminGameView token={token} roomCode={roomCode} gameState={gameState} />;
+    }
+    else {
+        return <PlayerGameView token={token} roomCode={roomCode} role={role as Role} gameState={gameState} />;
+    }
 }

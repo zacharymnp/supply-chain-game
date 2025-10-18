@@ -8,7 +8,7 @@ interface Props {
     gameState: GameState;
 }
 
-export function GameView({ token, roomCode, role, gameState }: Props) {
+export function PlayerGameView({ token, roomCode, role, gameState }: Props) {
     async function submitOrder(event: React.FormEvent) {
         event.preventDefault();
         const amount = Number((event.currentTarget as HTMLFormElement).amount.value);

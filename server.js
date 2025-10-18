@@ -70,6 +70,7 @@ app.post("/api/createGame", requireRole([Role.ADMIN]), async (request, response)
             gameId: game.id,
             roomCode: game.roomCode,
         });
+        io.emit("roomsUpdate", { roomCode: roomCode });
     }
     catch (error) {
         console.error(error);
