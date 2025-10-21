@@ -1,4 +1,4 @@
-//import React from "react";
+import React from "react";
 import type { Game } from "types";
 
 interface Props {
@@ -11,10 +11,14 @@ export function AdminGameView({ token, game }: Props) {
     const week = game.week;
     const gameState = game.state;
 
-    async function nextWeek() {
+    async function nextWeek(event: React.MouseEvent<HTMLButtonElement>) {
+        event.preventDefault();
         await fetch("/api/advanceWeek", {
             method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
             body: JSON.stringify({ roomCode }),
         });
     }
