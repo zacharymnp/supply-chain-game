@@ -20,7 +20,12 @@ export interface RoleState {
 }
 
 export interface GameState {
-    week: number;
     customerOrder: number[];
     roles: Record<Role, RoleState>;
+}
+
+export interface Game {
+    roomCode: string;
+    week: number;
+    state: GameState;
 }

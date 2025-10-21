@@ -6,16 +6,18 @@ async function main() {
     // clear old data
     await prisma.game.deleteMany({});
     await prisma.user.deleteMany({});
+    await prisma.order.deleteMany({}); // TODO: get rid of this line
 
     const seedGame = await prisma.game.create({
         data: {
             roomCode: "ROOM123",
             state: {
+                customerOrder: [4],
                 roles: {
-                    retailer: { inventory: [12], backlog: [0], incomingOrders: [] },
-                    wholesaler: { inventory: [12], backlog: [0], incomingOrders: [] },
-                    distributor: { inventory: [12], backlog: [0], incomingOrders: [] },
-                    factory: { inventory: [12], backlog: [0], incomingOrders: [] },
+                    RETAILER: { inventory: [12], backlog: [0], incomingOrders: [] },
+                    WHOLESALER: { inventory: [12], backlog: [0], incomingOrders: [] },
+                    DISTRIBUTOR: { inventory: [12], backlog: [0], incomingOrders: [] },
+                    FACTORY: { inventory: [12], backlog: [0], incomingOrders: [] },
                 },
             },
         },

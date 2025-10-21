@@ -6,13 +6,13 @@ import { PlayerLobbyView } from "./views/PlayerLobbyView.tsx";
 import { AdminLobbyView } from "./views/AdminLobbyView.tsx";
 import { AdminGameView } from "./views/AdminGameView.tsx";
 
-import type { GameState } from "./types";
-import { Role } from "./types";
+import type { Game } from "./types";
+import { Role } from "/types";
 
 let socket: Socket | null = null;
 
 export default function App() {
-    const [gameState, setGameState] = useState<GameState | null>(null);
+    const [game, setGame] = useState<Game | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [role, setRole] = useState<string | null>(null);
     const [roomCode, setRoomCode] = useState<string>("");
@@ -57,17 +57,17 @@ export default function App() {
     useEffect(() => {
         if (!token || !roomCode) return;
 
-        fetch(`/api/state/${roomCode}`, {
+        fetch(`/api/game/${roomCode}`, {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((response) => response.json())
-            .then((data: GameState) => setGameState(data))
-            .catch(() => setError("Failed to load game state"));
+            .then((data: Game) => setGame(data))
+            .catch(() => setError("Failed to load game"));
 
         // Connect websocket
         socket = io("http://localhost:5000", { query: { roomCode } });
-        socket.on("stateUpdate", (newState: GameState) => {
-            setGameState(newState);
+        socket.on("stateUpdate", (updatedGame: Game) => {
+            setGame(updatedGame);
         });
 
         return () => {
@@ -121,11 +121,11 @@ export default function App() {
     }
 
 // -------------------- GAME VIEWS --------------------
-    if (!gameState) return <p>Loading game state...</p>;
+    if (!game) return <p>Loading game state...</p>;
     if (role === "ADMIN") {
-        return <AdminGameView token={token} roomCode={roomCode} gameState={gameState} />;
+        return <AdminGameView token={token} game={game} />;
     }
     else {
-        return <PlayerGameView token={token} roomCode={roomCode} role={role as Role} gameState={gameState} />;
+        return <PlayerGameView token={token} role={role as Role} game={game} />;
     }
 }

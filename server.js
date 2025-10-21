@@ -13,7 +13,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+        origin: "http://localhost:5173",
+        methods: ["GET", "POST"]
+    }
+});
 
 // -------------------- SOCKET.IO --------------------
 io.on("connection", (socket) => {
@@ -28,7 +33,7 @@ function requireRole(roles) {
         const token = header.split(" ")[1];
         try {
             const decoded = jwt.verify(token, SECRET);
-            const userRole = decoded.role.toUpperCase();
+            const userRole = decoded.role;
             if (!roles.includes(userRole)) {
                 return response.status(403).json({ error: "Forbidden" });
             }
@@ -53,11 +58,12 @@ app.post("/api/createGame", requireRole([Role.ADMIN]), async (request, response)
             data: {
                 roomCode: roomCode,
                 state: {
+                    customerOrder: [4],
                     roles: {
-                        retailer: { inventory: [12], backlog: [0], incomingOrders: [] },
-                        wholesaler: { inventory: [12], backlog: [0], incomingOrders: [] },
-                        distributor: { inventory: [12], backlog: [0], incomingOrders: [] },
-                        factory: { inventory: [12], backlog: [0], incomingOrders: [] },
+                        RETAILER: { inventory: [12], backlog: [0], incomingOrders: [] },
+                        WHOLESALER: { inventory: [12], backlog: [0], incomingOrders: [] },
+                        DISTRIBUTOR: { inventory: [12], backlog: [0], incomingOrders: [] },
+                        FACTORY: { inventory: [12], backlog: [0], incomingOrders: [] },
                     },
                 },
             },
@@ -70,7 +76,6 @@ app.post("/api/createGame", requireRole([Role.ADMIN]), async (request, response)
             gameId: game.id,
             roomCode: game.roomCode,
         });
-        io.emit("roomsUpdate", { roomCode: roomCode });
     }
     catch (error) {
         console.error(error);
@@ -93,7 +98,7 @@ app.post("/api/login", async (request, response) => {
         const ok = await bcrypt.compare(password, user.password);
         if (!ok) return response.status(401).json({ error: "Invalid credentials" });
 
-        const token = jwt.sign({ role: user.role.toUpperCase(), id: user.id }, SECRET, { expiresIn: "8h" });
+        const token = jwt.sign({ role: user.role, id: user.id }, SECRET, { expiresIn: "8h" });
         response.json({ token, role: user.role });
     }
     catch (error) {
@@ -117,9 +122,9 @@ app.get("/api/rooms", async (request, response) => {
 });
 
 /**
- * Gets the game state of a particular room
+ * Gets the game with a particular roomCode
  */
-app.get("/api/state/:roomCode", async (request, response) => {
+app.get("/api/game/:roomCode", async (request, response) => {
     const { roomCode } = request.params;
 
     try {
@@ -130,9 +135,9 @@ app.get("/api/state/:roomCode", async (request, response) => {
         if (!game) return response.status(404).json({ error: "Game not found" });
 
         response.json({
+            roomCode: roomCode,
             week: game.week,
             state: game.state,
-            orders: game.orders,
         });
     }
     catch (error) {
@@ -151,24 +156,21 @@ app.post("/api/order", async (request, response) => {
         const game = await prisma.game.findUnique({ where: { roomCode } });
         if (!game) return response.status(404).json({ error: "Game not found" });
 
-        const normalizedRole = role.toUpperCase();
-        const jsonRole = role.toLowerCase();
-
-        const gameState = JSON.parse(game.state);
+        const gameState = game.state;
 
         await prisma.order.create({
-            data: { gameId: game.id, normalizedRole, amount, week },
+            data: { gameId: game.id, role, amount, week },
         });
 
-        const newOrder = { jsonRole, amount, weeksUntilArrival: 2};
-        gameState.roles[jsonRole].incomingOrders.push(newOrder);
+        const newOrder = { role, amount, weeksUntilArrival: 2};
+        gameState.roles[role].incomingOrders.push(newOrder);
 
-        await prisma.game.update({
+        const updatedGame = await prisma.game.update({
             where: { id: game.id },
             data: { state: gameState },
         });
 
-        io.emit("stateUpdate", gameState);
+        io.emit("stateUpdate", updatedGame);
         response.json({ success: true });
     }
     catch (error) {
@@ -192,12 +194,12 @@ app.post("/api/advanceWeek", requireRole(["ADMIN"]), async (request, response) =
         const nextWeek = currentWeek + 1;
 
         // compute demand flow: customer → retailer → wholesaler → distributor → factory
-        const roleOrder = ["retailer", "wholesaler", "distributor", "factory"];
+        const roleOrder = ["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY"];
         const demand = {
-            retailer: gameState.customerOrder[currentWeek],
-            wholesaler: 0,
-            distributor: 0,
-            factory: 0,
+            RETAILER: gameState.customerOrder[currentWeek],
+            WHOLESALER: 0,
+            DISTRIBUTOR: 0,
+            FACTORY: 0,
         };
 
         // TODO: make sure any of this is right

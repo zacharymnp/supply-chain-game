@@ -1,14 +1,17 @@
 import React from "react";
-import type { Role, GameState } from "types";
+import type { Role, Game } from "types";
 
 interface Props {
     token: string;
-    roomCode: string;
+    game: Game;
     role: Role;
-    gameState: GameState;
 }
 
-export function PlayerGameView({ token, roomCode, role, gameState }: Props) {
+export function PlayerGameView({ token, game, role }: Props) {
+    const roomCode = game.roomCode;
+    const week = game.week;
+    const gameState = game.state;
+
     async function submitOrder(event: React.FormEvent) {
         event.preventDefault();
         const amount = Number((event.currentTarget as HTMLFormElement).amount.value);
@@ -18,20 +21,26 @@ export function PlayerGameView({ token, roomCode, role, gameState }: Props) {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ roomCode, role, amount, week: gameState.week }),
+            body: JSON.stringify({ roomCode, role, amount, week }),
         });
     }
 
     const roleData = gameState.roles[role];
 
+    // TODO: temp
+    const orders: number[] = [];
+    roleData.incomingOrders.forEach((order) => {
+        orders.push(order.amount);
+    })
+
     return (
         <div>
             <h2>Room: {roomCode}</h2>
             <h3>Role: {role}</h3>
-            <p>Week: {gameState.week}</p>
+            <p>Week: {week}</p>
             <p>Inventory: {roleData.inventory}</p>
             <p>Backlog: {roleData.backlog}</p>
-            <p>Orders: {roleData.incomingOrders.join(", ") || "none"}</p>
+            <p>Orders: {orders.join(", ") || "none"}</p>
 
             <form onSubmit={submitOrder}>
                 <input name="amount" type="number" placeholder="Order amount" required />

@@ -1,4 +1,4 @@
-import React from "react";
+//import React from "react";
 import type { Role } from "types";
 
 interface Props {
@@ -18,7 +18,7 @@ export function PlayerLobbyView({ availableRooms, onRoomSelect }: Props) {
                         event.preventDefault();
                         const form = event.currentTarget;
                         const roomCode = (form.elements.namedItem("roomCode") as HTMLSelectElement).value;
-                        const role = (form.elements.namedItem("role") as HTMLSelectElement).value.toUpperCase() as Role;
+                        const role = (form.elements.namedItem("role") as HTMLSelectElement).value as Role;
                         onRoomSelect(roomCode, role);
                     }}
                 >
@@ -35,10 +35,10 @@ export function PlayerLobbyView({ availableRooms, onRoomSelect }: Props) {
                     <label>
                         Role:
                         <select name="role" required>
-                            <option value="retailer">Retailer</option>
-                            <option value="wholesaler">Wholesaler</option>
-                            <option value="distributor">Distributor</option>
-                            <option value="factory">Factory</option>
+                            <option value="RETAILER">Retailer</option>
+                            <option value="WHOLESALER">Wholesaler</option>
+                            <option value="DISTRIBUTOR">Distributor</option>
+                            <option value="FACTORY">Factory</option>
                         </select>
                     </label>
                     <button type="submit">Join Game</button>
