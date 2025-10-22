@@ -27,12 +27,6 @@ export function PlayerGameView({ token, game, role }: Props) {
 
     const roleData = gameState.roles[role];
 
-    // TODO: temp
-    const orders: number[] = [];
-    roleData.incomingOrders.forEach((order) => {
-        orders.push(order.amount);
-    })
-
     return (
         <div>
             <h2>Room: {roomCode}</h2>
@@ -40,7 +34,6 @@ export function PlayerGameView({ token, game, role }: Props) {
             <p>Week: {week}</p>
             <p>Inventory: {roleData.inventory}</p>
             <p>Backlog: {roleData.backlog}</p>
-            <p>Orders: {orders.join(", ") || "none"}</p>
 
             <form onSubmit={submitOrder}>
                 <input name="amount" type="number" placeholder="Order amount" required />

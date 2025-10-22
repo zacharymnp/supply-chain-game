@@ -4,9 +4,9 @@ const prisma = new PrismaClient();
 
 async function main() {
     // clear old data
-    await prisma.game.deleteMany({});
+    await prisma.order.deleteMany({});
     await prisma.user.deleteMany({});
-    await prisma.order.deleteMany({}); // TODO: get rid of this line
+    await prisma.game.deleteMany({});
 
     const seedGame = await prisma.game.create({
         data: {
@@ -14,11 +14,23 @@ async function main() {
             state: {
                 customerOrder: [4],
                 roles: {
-                    RETAILER: { inventory: [12], backlog: [0], incomingOrders: [] },
-                    WHOLESALER: { inventory: [12], backlog: [0], incomingOrders: [] },
-                    DISTRIBUTOR: { inventory: [12], backlog: [0], incomingOrders: [] },
-                    FACTORY: { inventory: [12], backlog: [0], incomingOrders: [] },
+                    RETAILER: { inventory: [12], backlog: [0] },
+                    WHOLESALER: { inventory: [12], backlog: [0] },
+                    DISTRIBUTOR: { inventory: [12], backlog: [0] },
+                    FACTORY: { inventory: [12], backlog: [0] },
                 },
+            },
+            orders: {
+                create: [
+                    { role: "RETAILER", amount: 4, week: -1 },
+                    { role: "WHOLESALER", amount: 4, week: -1 },
+                    { role: "DISTRIBUTOR", amount: 4, week: -1 },
+                    { role: "FACTORY", amount: 4, week: -1 },
+                    { role: "RETAILER", amount: 4, week: 0 },
+                    { role: "WHOLESALER", amount: 4, week: 0 },
+                    { role: "DISTRIBUTOR", amount: 4, week: 0 },
+                    { role: "FACTORY", amount: 4, week: 0 },
+                ],
             },
         },
     });

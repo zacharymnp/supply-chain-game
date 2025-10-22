@@ -60,11 +60,23 @@ app.post("/api/createGame", requireRole([Role.ADMIN]), async (request, response)
                 state: {
                     customerOrder: [4],
                     roles: {
-                        RETAILER: { inventory: [12], backlog: [0], incomingOrders: [] },
-                        WHOLESALER: { inventory: [12], backlog: [0], incomingOrders: [] },
-                        DISTRIBUTOR: { inventory: [12], backlog: [0], incomingOrders: [] },
-                        FACTORY: { inventory: [12], backlog: [0], incomingOrders: [] },
+                        RETAILER: { inventory: [12], backlog: [0] },
+                        WHOLESALER: { inventory: [12], backlog: [0] },
+                        DISTRIBUTOR: { inventory: [12], backlog: [0] },
+                        FACTORY: { inventory: [12], backlog: [0] },
                     },
+                },
+                orders: {
+                    create: [
+                        { role: "RETAILER", amount: 4, week: -1 },
+                        { role: "WHOLESALER", amount: 4, week: -1 },
+                        { role: "DISTRIBUTOR", amount: 4, week: -1 },
+                        { role: "FACTORY", amount: 4, week: -1 },
+                        { role: "RETAILER", amount: 4, week: 0 },
+                        { role: "WHOLESALER", amount: 4, week: 0 },
+                        { role: "DISTRIBUTOR", amount: 4, week: 0 },
+                        { role: "FACTORY", amount: 4, week: 0 },
+                    ],
                 },
             },
         });
@@ -153,21 +165,19 @@ app.post("/api/order", async (request, response) => {
     const { roomCode, role, amount, week } = request.body;
 
     try {
-        const game = await prisma.game.findUnique({ where: { roomCode } });
+        const game = await prisma.game.findUnique({
+            where: { roomCode },
+            select: { id: true, state: true },
+        });
         if (!game) return response.status(404).json({ error: "Game not found" });
-
-        const gameState = game.state;
 
         await prisma.order.create({
             data: { gameId: game.id, role, amount, week },
         });
 
-        const newOrder = { role, amount, weeksUntilArrival: 2};
-        gameState.roles[role].incomingOrders.push(newOrder);
-
-        const updatedGame = await prisma.game.update({
+        const updatedGame = await prisma.game.findUnique({
             where: { id: game.id },
-            data: { state: gameState },
+            include: { orders: true, users: true },
         });
 
         io.emit("stateUpdate", updatedGame);
@@ -186,70 +196,64 @@ app.post("/api/advanceWeek", requireRole(["ADMIN"]), async (request, response) =
     const { roomCode } = request.body;
 
     try {
-        const game = await prisma.game.findUnique({ where: { roomCode } });
+        const game = await prisma.game.findUnique({
+            where: { roomCode },
+            select: { id: true, week: true, state: true },
+        });
         if (!game) return response.status(404).json({ error: "Game not found" });
-        const gameState = JSON.parse(game.state);
+        const gameId = game.id;
 
-        const currentWeek = gameState.week;
+        const orders = await prisma.order.findMany({ where: { gameId } });
+
+        const gameState = game.state;
+        const currentWeek = game.week;
         const nextWeek = currentWeek + 1;
 
         // compute demand flow: customer → retailer → wholesaler → distributor → factory
         const roleOrder = ["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY"];
-        const demand = {
-            RETAILER: gameState.customerOrder[currentWeek],
-            WHOLESALER: 0,
-            DISTRIBUTOR: 0,
-            FACTORY: 0,
-        };
 
-        // TODO: make sure any of this is right
-        // propagate previous week’s outgoing orders as new demand upstream
-        for (let i = 1; i < roleOrder.length; i++) {
-            const downstream = roleOrder[i - 1];
-            const upstream = roleOrder[i];
-            const downstreamState = gameState.roles[downstream];
-            const lastOutgoingOrder = downstreamState.incomingOrders.at(-1);
-            demand[upstream] = lastOutgoingOrder.amount;
+        // process arriving orders
+        for (const order of orders) {
+            const id = order.id;
+            const currentInventory = gameState.roles[order.role].inventory[currentWeek];
+            if (order.week <= currentWeek - 2) {
+                // initialize next week's inventory and backlog
+                gameState.roles[order.role].inventory.push(0);
+                gameState.roles[order.role].backlog.push(0);
+
+                gameState.roles[order.role].inventory[nextWeek] = currentInventory + order.amount;
+                await prisma.order.delete({where: { id } });
+            }
         }
-
-        // process each role in downstream→upstream order
-        for (const roleName of roleOrder) {
-            const roleState = gameState.roles[roleName];
-            const previousInventory = roleState.inventory.at(-1) ?? 0;
-            const previousBacklog = roleState.backlog.at(-1) ?? 0;
-            let newInventory = previousInventory;
-            let newBacklog = previousBacklog;
-
-            const updatedOrders = [];
-            for (const order of roleState.incomingOrders) {
-                if (order.delay <= 0) { // shipment has arrived
-                    newInventory += order.amount;
+        // process departing orders
+        for (const order of orders) {
+            if (order.role !== "FACTORY" && order.week === currentWeek) {
+                const id = order.id;
+                const contributor = roleOrder[roleOrder.indexOf(order.role) + 1];
+                const currentInventory = gameState.roles[contributor].inventory[nextWeek]; // use nextWeek to account for previous loop
+                const demand = gameState.roles[contributor].backlog[currentWeek] + order.amount;
+                if (currentInventory < demand) {
+                    gameState.roles[contributor].inventory[nextWeek] = 0;
+                    gameState.roles[contributor].backlog[nextWeek] = demand - currentInventory;
+                    await prisma.order.update({
+                        where: { id },
+                        data: { amount: currentInventory },
+                    });
                 }
                 else {
-                    updatedOrders.push({ ...order, delay: order.delay - 1 })
+                    gameState.roles[contributor].inventory[nextWeek] = currentInventory - demand;
+                    gameState.roles[contributor].backlog[nextWeek] = 0;
                 }
             }
-            roleState.incomingOrders = updatedOrders;
-
-            // attempt to fulfill this week's demand + backlog
-            const totalDemand = demand[roleName] + newBacklog;
-            const shipped = Math.min(newInventory, totalDemand);
-            newInventory -= shipped;
-            newBacklog = totalDemand - shipped;
-
-            roleState.inventory.push(newInventory);
-            roleState.backlog.push(newBacklog);
         }
 
-        gameState.week = newWeek;
-
-        await prisma.game.update({
-            where: { id: game.id },
-            data: { week: newWeek, state: JSON.stringify(gameState) },
+        const updatedGame = await prisma.game.update({
+            where: { id: gameId },
+            data: { week: nextWeek, state: JSON.stringify(gameState) },
         });
 
-        io.emit("stateUpdate", gameState);
-        response.json({ success: true, week: newWeek });
+        io.emit("stateUpdate", updatedGame);
+        response.json({ success: true, week: nextWeek });
     }
     catch (error) {
         console.error(error);
