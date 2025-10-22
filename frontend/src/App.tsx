@@ -18,6 +18,7 @@ export default function App() {
     const [roomCode, setRoomCode] = useState<string>("");
     const [availableRooms, setAvailableRooms] = useState<string[]>([]);
     const [error, setError] = useState<string>("");
+    const [isRegistering, setRegistering] = useState<boolean>(false);
 
 // -------------------- LOGIN --------------------
     async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
@@ -41,6 +42,37 @@ export default function App() {
         setToken(data.token);
         setRole(data.role);
         setError("");
+    }
+
+// -------------------- DISPLAY REGISTRATION SCREEN --------------------
+    async function goToRegistration(event: React.FormEvent<HTMLFormElement>){
+        setRegistering(true);
+    }
+
+// -------------------- REGISTER ACCOUNT --------------------
+    async function returnToLogin(event: React.FormEvent<HTMLFormElement>){
+        event.preventDefault();
+        const form = event.currentTarget;
+        const username = (form.elements.namedItem("username") as HTMLInputElement).value;
+        const password = (form.elements.namedItem("password") as HTMLInputElement).value;
+        const password2 = (form.elements.namedItem("password2") as HTMLInputElement).value;
+        if(password === password2){
+            setRegistering(false); 
+            setError("");
+            await fetch("/api/register", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ username, password }),
+            });
+            
+        }
+        else{
+           setError("Passwords must match");
+        }
+        
     }
 
 // -------------------- FETCH ROOMS --------------------
@@ -75,6 +107,22 @@ export default function App() {
         };
     }, [token, roomCode]);
 
+// ------------- REGISTRATION SCREEN ----------------------
+    if (isRegistering) {
+        return (
+            <div style={{ padding: "2rem" }}>
+                <h1>Registration</h1>
+                <form onSubmit={returnToLogin}>
+                    <input name="username" placeholder="Username" required />
+                    <input name="password" type="password" placeholder="Password" required />
+                    <input name="password2" type="password" placeholder="Confirm Password" required />
+                    <button type="submit">Register</button>
+                </form>
+                {error && <p style={{ color: "red" }}>{error}</p>}
+            </div>
+        );
+    }
+
 // -------------------- LOGIN SCREEN --------------------
     if (!token) {
         return (
@@ -84,6 +132,9 @@ export default function App() {
                     <input name="username" placeholder="Username" required />
                     <input name="password" type="password" placeholder="Password" required />
                     <button type="submit">Login</button>
+                </form>
+                <form onSubmit={goToRegistration}>
+                    <button type="submit">Register</button>
                 </form>
                 {error && <p style={{ color: "red" }}>{error}</p>}
             </div>

@@ -95,7 +95,26 @@ app.post("/api/createGame", requireRole([Role.ADMIN]), async (request, response)
     }
 });
 
-// TODO: users should create their own (temporary) login
+/**
+ * Players register a username and password
+ */
+
+app.post("/api/register", async (request, response) => {
+    const { username, password } = request.body;
+    try {
+        await prisma.user.create({
+            data: {
+                username: username,
+                password: await bcrypt.hash(password, 10),
+                role: Role.UNASSIGNED,
+            },
+        });
+    }
+    catch (error) {
+        console.error(error);
+         response.status(500).json({ error: "Server error" });
+    }
+});
 
 /**
  * Players login with their username and password
