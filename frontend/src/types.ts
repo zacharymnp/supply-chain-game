@@ -10,13 +10,12 @@ export type Role = typeof Role[keyof typeof Role];
 export interface Order {
     role: Role;
     amount: number;
-    weeksUntilArrival: number; // counts down from 2 to 0
+    week: number;
 }
 
 export interface RoleState {
     inventory: number[];
     backlog: number[];
-    incomingOrders: Order[];
 }
 
 export interface GameState {
