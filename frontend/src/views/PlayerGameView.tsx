@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import type { Role, Game } from "types";
 
 interface Props {
@@ -11,21 +11,41 @@ export function PlayerGameView({ token, game, role }: Props) {
     const roomCode = game.roomCode;
     const week = game.week;
     const gameState = game.state;
+    const roleData = gameState.roles[role];
+
+    const [message, setMessage] = useState<string>("");
 
     async function submitOrder(event: React.FormEvent) {
         event.preventDefault();
-        const amount = Number((event.currentTarget as HTMLFormElement).amount.value);
-        await fetch("/api/order", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ roomCode, role, amount, week }),
-        });
-    }
 
-    const roleData = gameState.roles[role];
+        const form = event.currentTarget as HTMLFormElement;
+        const amountInput = form.amount as HTMLInputElement;
+        const amount = Number(amountInput.value);
+
+        try {
+            const response = await fetch("/api/order", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ roomCode, role, amount, week }),
+            });
+
+            if (response.ok) {
+                amountInput.value = "";
+                setMessage(`Order of ${amount} submitted successfully!`);
+                setTimeout(() => setMessage(""), 10000);
+            }
+            else {
+                setMessage("Failed to submit order.");
+            }
+        }
+        catch (error) {
+            console.error(error);
+            setMessage("Server error, please try again.");
+        }
+    }
 
     return (
         <div>
@@ -39,6 +59,8 @@ export function PlayerGameView({ token, game, role }: Props) {
                 <input name="amount" type="number" placeholder="Order amount" required />
                 <button type="submit">Place Order</button>
             </form>
+
+            {message && <p style={{ color: "green" }}>{message}</p>}
         </div>
     );
 }
