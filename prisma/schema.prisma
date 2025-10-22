@@ -13,6 +13,7 @@ enum Role {
   WHOLESALER
   DISTRIBUTOR
   FACTORY
+  UNASSIGNED
 }
 
 model User {
