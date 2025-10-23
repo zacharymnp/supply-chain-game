@@ -324,7 +324,7 @@ app.post("/api/advanceWeek", requireRole(["ADMIN"]), async (request, response) =
 
         const updatedGame = await prisma.game.update({
             where: { id: gameId },
-            data: { week: nextWeek, state: JSON.stringify(gameState) },
+            data: { week: nextWeek, state: gameState },
         });
 
         io.emit("stateUpdate", updatedGame);
