@@ -220,50 +220,69 @@ app.post("/api/advanceWeek", requireRole(["ADMIN"]), async (request, response) =
             select: { id: true, week: true, state: true },
         });
         if (!game) return response.status(404).json({ error: "Game not found" });
+
         const gameId = game.id;
-
-        const orders = await prisma.order.findMany({ where: { gameId } });
-
         const gameState = game.state;
         const currentWeek = game.week;
         const nextWeek = currentWeek + 1;
 
-        // compute demand flow: customer → retailer → wholesaler → distributor → factory
+        // demand flow: customer → retailer → wholesaler → distributor → factory
         const roleOrder = ["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY"];
+
+        // inventory and backlog start with last week's values
+        for (const role of roleOrder) {
+            const roleState = gameState.roles[role];
+
+            const lastInventory = roleState.inventory[roleState.inventory.length - 1] ?? 0;
+            const lastBacklog = roleState.backlog[roleState.backlog.length - 1] ?? 0;
+
+            while (roleState.inventory.length < nextWeek) roleState.inventory.push(lastInventory);
+            while (roleState.backlog.length < nextWeek) roleState.backlog.push(lastBacklog);
+        }
+
+        const orders = await prisma.order.findMany({ where: { gameId } });
 
         // process arriving orders
         for (const order of orders) {
-            const id = order.id;
-            const currentInventory = gameState.roles[order.role].inventory[currentWeek];
+            const roleState = gameState.roles[order.role];
             if (order.week <= currentWeek - 2) {
-                // initialize next week's inventory and backlog
-                gameState.roles[order.role].inventory.push(0);
-                gameState.roles[order.role].backlog.push(0);
-
-                gameState.roles[order.role].inventory[nextWeek] = currentInventory + order.amount;
-                await prisma.order.delete({where: { id } });
+                roleState.inventory[nextWeek - 1] += order.amount;
+                await prisma.order.delete({where: { id: order.id } });
             }
         }
         // process departing orders
         for (const order of orders) {
             if (order.role !== "FACTORY" && order.week === currentWeek) {
-                const id = order.id;
                 const contributor = roleOrder[roleOrder.indexOf(order.role) + 1];
-                const currentInventory = gameState.roles[contributor].inventory[nextWeek]; // use nextWeek to account for previous loop
-                const demand = gameState.roles[contributor].backlog[currentWeek] + order.amount;
+                const contributorState = gameState.roles[contributor];
+
+                const currentInventory = contributorState.inventory[nextWeek - 1]; // use nextWeek to account for previous loop
+                const demand = contributorState.backlog[currentWeek - 1] + order.amount;
                 if (currentInventory < demand) {
-                    gameState.roles[contributor].inventory[nextWeek] = 0;
-                    gameState.roles[contributor].backlog[nextWeek] = demand - currentInventory;
+                    contributorState.inventory[nextWeek - 1] = 0;
+                    contributorState.backlog[nextWeek - 1] = demand - currentInventory;
                     await prisma.order.update({
-                        where: { id },
+                        where: { id: order.id },
                         data: { amount: currentInventory },
                     });
                 }
                 else {
-                    gameState.roles[contributor].inventory[nextWeek] = currentInventory - demand;
-                    gameState.roles[contributor].backlog[nextWeek] = 0;
+                    contributorState.inventory[nextWeek - 1] = currentInventory - demand;
+                    contributorState.backlog[nextWeek - 1] = 0;
                 }
             }
+        }
+        // process departing order from RETAILER
+        const retailerState = gameState.roles["RETAILER"];
+        const currentRetailerInventory = retailerState.inventory[nextWeek - 1]; // use nextWeek to account for previous loop
+        const demandOnRetailer = retailerState.backlog[currentWeek - 1] + gameState.customerOrder[currentWeek - 1];
+        if (currentRetailerInventory < demandOnRetailer) {
+            retailerState.inventory[nextWeek - 1] = 0;
+            retailerState.backlog[nextWeek - 1] = demandOnRetailer - currentRetailerInventory;
+        }
+        else {
+            retailerState.inventory[nextWeek - 1] = currentRetailerInventory - demandOnRetailer;
+            retailerState.backlog[nextWeek - 1] = 0;
         }
 
         const updatedGame = await prisma.game.update({
