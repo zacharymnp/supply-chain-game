@@ -178,6 +178,41 @@ app.get("/api/game/:roomCode", async (request, response) => {
 });
 
 /**
+ * Gets the order status for all roles in the current week
+ */
+app.get("/api/orderStatus", requireRole(["ADMIN"]), async (request, response) => {
+    const { roomCode, week } = request.query;
+
+    try {
+        const game = await prisma.game.findUnique({
+            where: { roomCode },
+            select: { id: true },
+        });
+        if (!game) return response.status(404).json({ error: "Game not found" });
+
+        const orders = await prisma.order.findMany({
+            where: {
+                gameId: game.id,
+                week: Number(week),
+            },
+            select: { role: true },
+        });
+
+        const roles = ["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY"];
+        const status = {};
+        for (const role of roles) {
+            status[role] = orders.some((order) => order.role === role);
+        }
+
+        response.json({ success: true, status });
+    }
+    catch (error) {
+        console.error(error);
+        response.status(500).json({ error: "Server error" });
+    }
+});
+
+/**
  * Players submit orders
  */
 app.post("/api/order", async (request, response) => {

@@ -1,5 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { Game } from "types";
+
+import { io } from "socket.io-client";
+const socket = io();
 
 interface Props {
     token: string;
@@ -12,7 +15,57 @@ export function AdminGameView({ token, game }: Props) {
     const gameState = game.state;
 
     const [newCustomerOrder, setNewCustomerOrder] = useState<number>(0);
+    const [customerOrderPlaced, setCustomerOrderPlaced] = useState<boolean>(false);
     const [message, setMessage] = useState<string>("");
+    const [orderStatus, setOrderStatus] = useState<Record<string, boolean>>({});
+
+    async function getOrderStatus() {
+        // check team orders
+        const response = await fetch(`/api/orderStatus?roomCode=${roomCode}&week=${week}`, {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+            const data = await response.json();
+            setOrderStatus(data.status);
+
+            // check customer order
+            try {
+                const gameResponse = await fetch(`/api/game/${roomCode}`, {
+                    method: "GET",
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (gameResponse.ok) {
+                    const gameData = await gameResponse.json();
+                    setCustomerOrderPlaced(gameData.state.customerOrder.length >= week);
+                }
+            }
+            catch (error) {
+                console.error("Failed to check customer order", error);
+            }
+        }
+        else {
+            console.error("Failed to fetch order status");
+        }
+    }
+    useEffect(() => {
+        void getOrderStatus();
+
+        socket.on("stateUpdate", (updatedGame) => {
+            if (updatedGame.roomCode === roomCode) {
+                setOrderStatus({});
+                void getOrderStatus();
+            }
+        });
+
+        return () => {
+            socket.off("stateUpdate");
+        };
+    }, [roomCode, week]);
+
+    // only allow the admin to advance the week once all orders have been placed
+    const allOrdersPlaced = Object.values(orderStatus).every((placed) => placed)
+        && customerOrderPlaced;
 
     async function nextWeek(event: React.MouseEvent<HTMLButtonElement>) {
         event.preventDefault();
@@ -54,7 +107,24 @@ export function AdminGameView({ token, game }: Props) {
         <div style={{ padding: "2rem" }}>
             <h2>Facilitator Panel - Room: {roomCode}</h2>
             <p>Current week: {week}</p>
-            <button onClick={nextWeek}>Advance Week</button>
+
+            <h3>Order Status</h3>
+            <ul>
+                {["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY"].map((role) => (
+                    <li key={role}>
+                        {role}:{" "}
+                        {orderStatus[role] ? (
+                            <span style={{ color: "green" }}>Order Placed</span>
+                        ) : (
+                            <span style={{ color: "red" }}>Awaiting Order</span>
+                        )}
+                    </li>
+                ))}
+            </ul>
+
+            <button onClick={nextWeek} disabled={!allOrdersPlaced}>
+                {allOrdersPlaced ? "Advance Week" : "Waiting for orders..."}
+            </button>
 
             <form onSubmit={submitCustomerOrder} style={{ marginTop: "1rem" }}>
                 <input
