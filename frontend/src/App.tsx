@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 
 import { PlayerGameView } from "./views/PlayerGameView.tsx";
@@ -9,8 +9,6 @@ import { AdminGameView } from "./views/AdminGameView.tsx";
 import type { Game } from "./types";
 import { Role } from "/types";
 
-let socket: Socket | null = null;
-
 export default function App() {
     const [game, setGame] = useState<Game | null>(null);
     const [token, setToken] = useState<string | null>(null);
@@ -19,6 +17,8 @@ export default function App() {
     const [availableRooms, setAvailableRooms] = useState<string[]>([]);
     const [error, setError] = useState<string>("");
     const [isRegistering, setRegistering] = useState<boolean>(false);
+
+    const socketReference = useRef<Socket | null>(null);
 
 // -------------------- LOGIN --------------------
     async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
@@ -96,14 +96,37 @@ export default function App() {
             .then((data: Game) => setGame(data))
             .catch(() => setError("Failed to load game"));
 
-        // Connect websocket
-        socket = io("http://localhost:5000", { query: { roomCode } });
+        // close any existing socket before reconnecting
+        if (socketReference.current) {
+            socketReference.current.disconnect();
+        }
+
+        // initialize socket connection
+        const socket = io("http://localhost:5000", {
+            query: {roomCode },
+            auth: { token },
+        });
+        socketReference.current = socket;
+
+        // event listeners
+        socket.on("connect", () => {
+            console.log("Connected to WebSocket:", socket.id);
+        });
+        socket.on("disconnect", (reason) => {
+            console.log("Disconnected from WebSocket:", reason);
+        });
+        socket.on("error", (msg) => {
+            console.error("Socket error:", msg);
+        });
         socket.on("stateUpdate", (updatedGame: Game) => {
+            console.log("Received state update:", updatedGame);
             setGame(updatedGame);
         });
 
         return () => {
-            socket?.disconnect();
+            console.log("Cleaning up socket connection...");
+            socket.disconnect();
+            socketReference.current = null;
         };
     }, [token, roomCode]);
 
@@ -174,9 +197,9 @@ export default function App() {
 // -------------------- GAME VIEWS --------------------
     if (!game) return <p>Loading game state...</p>;
     if (role === "ADMIN") {
-        return <AdminGameView token={token} game={game} />;
+        return <AdminGameView socket={socketReference.current!} token={token} game={game} />;
     }
     else {
-        return <PlayerGameView token={token} role={role as Role} game={game} />;
+        return <PlayerGameView socket={socketReference.current!} token={token} role={role as Role} game={game} />;
     }
 }

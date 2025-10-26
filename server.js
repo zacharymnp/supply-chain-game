@@ -6,23 +6,37 @@ const cors = require("cors");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { PrismaClient, Role } = require("@prisma/client");
+
 const prisma = new PrismaClient();
 const SECRET = process.env.JWT_SECRET || "supersecretpassword";
 
+// -------------------- SOCKET.IO --------------------
+// express setup
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// HTTP server setup
 const server = http.createServer(app);
+
 const io = new Server(server, {
     cors: {
         origin: "http://localhost:5173",
         methods: ["GET", "POST"]
     }
 });
-
-// -------------------- SOCKET.IO --------------------
 io.on("connection", (socket) => {
-    console.log("A player connected");
+    console.log("New connection: ${socket.id}");
+
+    socket.on("joinRoom", (roomCode) => {
+        socket.join(roomCode);
+        console.log(`Socket ${socket.id} joined room ${roomCode}`);
+        io.to(roomCode).emit("playerJoined", { playerId: socket.id });
+    });
+
+    socket.on("disconnect", () => {
+        console.log(`Disconnected: ${socket.id}`);
+    });
 });
 
 // -------------------- HELPERS --------------------
@@ -234,7 +248,7 @@ app.post("/api/order", async (request, response) => {
             include: { orders: true, users: true },
         });
 
-        io.emit("stateUpdate", updatedGame);
+        io.to(roomCode).emit("stateUpdate", updatedGame);
         response.json({ success: true });
     }
     catch (error) {
@@ -362,7 +376,7 @@ app.post("/api/advanceWeek", requireRole(["ADMIN"]), async (request, response) =
             data: { week: nextWeek, state: gameState },
         });
 
-        io.emit("stateUpdate", updatedGame);
+        io.to(roomCode).emit("stateUpdate", updatedGame);
         response.json({ success: true, week: nextWeek });
     }
     catch (error) {

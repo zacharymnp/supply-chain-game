@@ -7,6 +7,7 @@ interface Props {
 }
 
 export function PlayerLobbyView({ availableRooms, onRoomSelect }: Props) {
+// -------------------- PLAYER LOBBY VIEW --------------------
     return (
         <div style={{ padding: "2rem" }}>
             <h2>Select Room & Role</h2>

@@ -11,6 +11,7 @@ export function AdminLobbyView({ token, availableRooms, onRoomSelect, refreshRoo
     const [newRoomCode, setNewRoomCode] = useState("");
     const [message, setMessage] = useState("");
 
+// -------------------- CREATE NEW ROOM --------------------
     async function createRoom(event: React.FormEvent) {
         event.preventDefault();
         const response = await fetch(`/api/createGame`, {
@@ -31,6 +32,7 @@ export function AdminLobbyView({ token, availableRooms, onRoomSelect, refreshRoo
         }
     }
 
+// -------------------- ADMIN LOBBY VIEW --------------------
     return (
         <div style={{ padding: "2rem" }}>
             <h2>Admin Lobby</h2>
