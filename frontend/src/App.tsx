@@ -20,13 +20,31 @@ export default function App() {
 
     const socketReference = useRef<Socket | null>(null);
 
+// -------------------- COOKIES --------------------
+
+    if((document.cookie).length > 0 && !token && !role){
+        let cookie = document.cookie;
+        let t = ""
+        let r = ""
+        for(let i = 0; i < cookie.length; i ++){
+            if(cookie.charAt(i) === '_'){
+                r = cookie.substring(0, i);
+                t = cookie.substring(i);
+            }
+        }
+        t = t.substring(6);
+        r = r.substring(5);
+        setToken(t);
+        setRole(r);
+        setError("");
+    }
+
 // -------------------- LOGIN --------------------
     async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         const form = event.currentTarget;
         const username = (form.elements.namedItem("username") as HTMLInputElement).value;
         const password = (form.elements.namedItem("password") as HTMLInputElement).value;
-
         const response = await fetch("/api/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -37,8 +55,9 @@ export default function App() {
             setError("Invalid username or password");
             return;
         }
-
         const data = await response.json();
+        document.cookie = "role=" + data.role + "_token=" + data.token;
+        console.log(document.cookie);
         setToken(data.token);
         setRole(data.role);
         setError("");
@@ -49,6 +68,7 @@ export default function App() {
         setRegistering(true);
     }
 
+// TODO, impose password restrictions
 // -------------------- REGISTER ACCOUNT --------------------
     async function returnToLogin(event: React.FormEvent<HTMLFormElement>){
         event.preventDefault();
@@ -149,18 +169,18 @@ export default function App() {
 // -------------------- LOGIN SCREEN --------------------
     if (!token) {
         return (
-            <div style={{ padding: "2rem" }}>
-                <h1>Supply Chain Game Login</h1>
-                <form onSubmit={handleLogin}>
-                    <input name="username" placeholder="Username" required />
-                    <input name="password" type="password" placeholder="Password" required />
-                    <button type="submit">Login</button>
-                </form>
-                <form onSubmit={goToRegistration}>
-                    <button type="submit">Register</button>
-                </form>
-                {error && <p style={{ color: "red" }}>{error}</p>}
-            </div>
+        <div style={{ padding: "2rem" }}>
+            <h1>Supply Chain Game Login</h1>
+            <form onSubmit={handleLogin}>
+                <input name="username" placeholder="Username" required />
+                <input name="password" type="password" placeholder="Password" required />
+                <button type="submit">Login</button>
+            </form>
+            <form onSubmit={goToRegistration}>
+                <button type="submit">Register</button>
+            </form>
+            {error && <p style={{ color: "red" }}>{error}</p>}
+        </div>
         );
     }
 
