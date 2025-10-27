@@ -7,6 +7,10 @@ interface Props {
     refreshRooms: () => void;
 }
 
+async function handleLogout(event: React.FormEvent<HTMLFormElement>){
+    document.cookie = "role=a;expires=Thu, 18 Dec 2013 12:00:00 UTC";
+}
+
 export function AdminLobbyView({ token, availableRooms, onRoomSelect, refreshRooms }: Props) {
     const [newRoomCode, setNewRoomCode] = useState("");
     const [message, setMessage] = useState("");
@@ -61,6 +65,9 @@ export function AdminLobbyView({ token, availableRooms, onRoomSelect, refreshRoo
                     ))}
                 </ul>
             )}
+            <form onSubmit={handleLogout}>
+                    <button type="submit">Logout</button>
+            </form>
         </div>
     );
 }

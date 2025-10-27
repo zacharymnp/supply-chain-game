@@ -68,7 +68,6 @@ export default function App() {
         setRegistering(true);
     }
 
-// TODO, impose password restrictions
 // -------------------- REGISTER ACCOUNT --------------------
     async function returnToLogin(event: React.FormEvent<HTMLFormElement>){
         event.preventDefault();

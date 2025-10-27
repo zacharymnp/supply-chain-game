@@ -6,6 +6,10 @@ interface Props {
     onRoomSelect: (roomCode: string, role: Role) => void;
 }
 
+async function handleLogout(event: React.FormEvent<HTMLFormElement>){
+    document.cookie = "role=a;expires=Thu, 18 Dec 2013 12:00:00 UTC";
+}
+
 export function PlayerLobbyView({ availableRooms, onRoomSelect }: Props) {
 // -------------------- PLAYER LOBBY VIEW --------------------
     return (
@@ -45,6 +49,9 @@ export function PlayerLobbyView({ availableRooms, onRoomSelect }: Props) {
                     <button type="submit">Join Game</button>
                 </form>
             )}
+            <form onSubmit={handleLogout}>
+                    <button type="submit">Logout</button>
+            </form>
         </div>
     );
 }
