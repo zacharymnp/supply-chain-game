@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import type { Game } from "types";
-
+import { GameGraphs } from "./GameGraphView";
+import "./GameView.css";
 import { Socket } from "socket.io-client";
 
 interface Props {
@@ -107,46 +108,52 @@ export function AdminGameView({ socket, token, game }: Props) {
 
 // -------------------- ADMIN GAME VIEW --------------------
     return (
-        <div style={{ padding: "2rem" }}>
+        <div className="game-view-container">
             <h2>Facilitator Panel - Room: {roomCode}</h2>
             <p>Current week: {week}</p>
 
-            <h3>Order Status</h3>
-            <ul>
-                {["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY"].map((role) => (
-                    <li key={role}>
-                        {role}:{" "}
-                        {orderStatus[role] ? (
-                            <span style={{ color: "green" }}>Order Placed</span>
-                        ) : (
-                            <span style={{ color: "red" }}>Awaiting Order</span>
-                        )}
-                    </li>
-                ))}
-            </ul>
+            {week < 10 ? (
+                <>
+                    <h3>Order Status</h3>
+                    <ul>
+                        {["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY"].map((role) => (
+                            <li key={role}>
+                                {role}:{" "}
+                                {orderStatus[role] ? (
+                                    <span className="order-placed">Order Placed</span>
+                                ) : (
+                                    <span className="order-awaiting">Awaiting Order</span>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
 
-            <button onClick={nextWeek} disabled={!allOrdersPlaced}>
-                {allOrdersPlaced ? "Advance Week" : "Waiting for orders..."}
-            </button>
+                    <button onClick={nextWeek} disabled={!allOrdersPlaced}>
+                        {allOrdersPlaced ? "Advance Week" : "Waiting for orders..."}
+                    </button>
 
-            <form onSubmit={submitCustomerOrder} style={{ marginTop: "1rem" }}>
-                <input
-                    type="number"
-                    placeholder="Customer order amount"
-                    value={newCustomerOrder}
-                    onChange={(event) => setNewCustomerOrder(Number(event.target.value))}
-                    min={0}
-                    required
-                />
-                <button type="submit" style={{ marginLeft: "0.5rem" }}>
-                    Add Customer Order
-                </button>
-            </form>
+                    <form onSubmit={submitCustomerOrder}>
+                        <input
+                            type="number"
+                            placeholder="Customer order amount"
+                            value={newCustomerOrder}
+                            onChange={(event) => setNewCustomerOrder(Number(event.target.value))}
+                            min={0}
+                            required
+                        />
+                        <button type="submit">Add Customer Order</button>
+                    </form>
 
-            {message && <p style={{ color: "green" }}>{message}</p>}
+                    {message && <p className="message">{message}</p>}
 
-            <h3>Full Game State</h3>
-            <pre>{JSON.stringify(gameState, null, 2)}</pre>
+                    <h3>Full Game State</h3>
+                    <pre>{JSON.stringify(gameState, null, 2)}</pre>
+                </>
+            ) : (
+                <div className="chart-section">
+                    <GameGraphs game={game} />
+                </div>
+            )}
         </div>
     );
 }

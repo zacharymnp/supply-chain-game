@@ -1,0 +1,82 @@
+.game-view-container {
+    padding: 2rem;
+    font-family: Arial, sans-serif;
+}
+
+.game-view-container h2,
+.game-view-container h3 {
+    margin-bottom: 0.5rem;
+}
+
+.game-view-container p {
+    margin: 0.2rem 0;
+}
+
+.game-view-container form {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.game-view-container input[type="number"] {
+    width: 150px;
+    padding: 0.3rem;
+}
+
+.game-view-container button {
+    padding: 0.4rem 0.8rem;
+    cursor: pointer;
+}
+
+.game-view-container .message {
+    color: green;
+    margin-top: 0.5rem;
+}
+
+.chart-section {
+    margin-top: 2rem;
+}
+
+.chart-section h3 {
+    margin-bottom: 0.5rem;
+}
+
+.outgoing-order {
+    color: green;
+    font-weight: bold;
+}
+
+.order-status li {
+    margin-bottom: 0.25rem;
+}
+
+.order-placed {
+    color: green;
+    font-weight: bold;
+}
+
+.order-awaiting {
+    color: red;
+    font-weight: bold;
+}
+
+.chart-container {
+    width: 100%;
+    height: 500px;
+    margin-top: 2rem;
+}
+
+.chart-container h3 {
+    margin-bottom: 0.5rem;
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+.inventory-backlog-chart {
+    height: 50%;
+}
+
+.customer-order-chart {
+    height: 30%;
+}

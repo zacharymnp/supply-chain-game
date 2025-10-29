@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import "./LobbyView.css";
 
 interface Props {
     token: string;
@@ -7,7 +8,7 @@ interface Props {
     refreshRooms: () => void;
 }
 
-async function handleLogout(event: React.FormEvent<HTMLFormElement>){
+async function handleLogout(){
     document.cookie = "role=a;expires=Thu, 18 Dec 2013 12:00:00 UTC";
 }
 
@@ -38,7 +39,7 @@ export function AdminLobbyView({ token, availableRooms, onRoomSelect, refreshRoo
 
 // -------------------- ADMIN LOBBY VIEW --------------------
     return (
-        <div style={{ padding: "2rem" }}>
+        <div className="lobby-container">
             <h2>Admin Lobby</h2>
 
             <form onSubmit={createRoom}>
@@ -65,7 +66,7 @@ export function AdminLobbyView({ token, availableRooms, onRoomSelect, refreshRoo
                     ))}
                 </ul>
             )}
-            <form onSubmit={handleLogout}>
+            <form className="logout-form" onSubmit={handleLogout}>
                     <button type="submit">Logout</button>
             </form>
         </div>

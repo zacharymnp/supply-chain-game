@@ -5,6 +5,7 @@ import { PlayerGameView } from "./views/PlayerGameView.tsx";
 import { PlayerLobbyView } from "./views/PlayerLobbyView.tsx";
 import { AdminLobbyView } from "./views/AdminLobbyView.tsx";
 import { AdminGameView } from "./views/AdminGameView.tsx";
+import "./views/LobbyView.css";
 
 import type { Game } from "./types";
 import { Role } from "/types";
@@ -64,7 +65,7 @@ export default function App() {
     }
 
 // -------------------- DISPLAY REGISTRATION SCREEN --------------------
-    async function goToRegistration(event: React.FormEvent<HTMLFormElement>){
+    async function goToRegistration(){
         setRegistering(true);
     }
 
@@ -152,7 +153,7 @@ export default function App() {
 // ------------- REGISTRATION SCREEN ----------------------
     if (isRegistering) {
         return (
-            <div style={{ padding: "2rem" }}>
+            <div className="lobby-container">
                 <h1>Registration</h1>
                 <form onSubmit={returnToLogin}>
                     <input name="username" placeholder="Username" required />
@@ -160,7 +161,7 @@ export default function App() {
                     <input name="password2" type="password" placeholder="Confirm Password" required />
                     <button type="submit">Register</button>
                 </form>
-                {error && <p style={{ color: "red" }}>{error}</p>}
+                {error && <p className="error-message">{error}</p>}
             </div>
         );
     }
@@ -168,7 +169,7 @@ export default function App() {
 // -------------------- LOGIN SCREEN --------------------
     if (!token) {
         return (
-        <div style={{ padding: "2rem" }}>
+        <div className="lobby-container">
             <h1>Supply Chain Game Login</h1>
             <form onSubmit={handleLogin}>
                 <input name="username" placeholder="Username" required />
@@ -178,7 +179,7 @@ export default function App() {
             <form onSubmit={goToRegistration}>
                 <button type="submit">Register</button>
             </form>
-            {error && <p style={{ color: "red" }}>{error}</p>}
+            {error && <p className="error-message">{error}</p>}
         </div>
         );
     }

@@ -1,19 +1,19 @@
-//import React from "react";
 import type { Role } from "types";
+import "./LobbyView.css";
 
 interface Props {
     availableRooms: string[];
     onRoomSelect: (roomCode: string, role: Role) => void;
 }
 
-async function handleLogout(event: React.FormEvent<HTMLFormElement>){
+async function handleLogout(){
     document.cookie = "role=a;expires=Thu, 18 Dec 2013 12:00:00 UTC";
 }
 
 export function PlayerLobbyView({ availableRooms, onRoomSelect }: Props) {
 // -------------------- PLAYER LOBBY VIEW --------------------
     return (
-        <div style={{ padding: "2rem" }}>
+        <div className="lobby-container">
             <h2>Select Room & Role</h2>
             {availableRooms.length === 0 ? (
                 <p>No active rooms. Please wait for an admin to create one.</p>
@@ -49,7 +49,7 @@ export function PlayerLobbyView({ availableRooms, onRoomSelect }: Props) {
                     <button type="submit">Join Game</button>
                 </form>
             )}
-            <form onSubmit={handleLogout}>
+            <form className="logout-form" onSubmit={handleLogout}>
                     <button type="submit">Logout</button>
             </form>
         </div>

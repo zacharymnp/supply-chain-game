@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import type { Role, Game } from "types";
-
+import { GameGraphs } from "./GameGraphView";
+import "./GameView.css";
 import { Socket } from "socket.io-client";
 
 interface Props {
@@ -86,20 +87,25 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
 
 // -------------------- PLAYER GAME VIEW --------------------
     return (
-        <div>
+        <div className="game-view-container">
             <h2>Room: {roomCode}</h2>
             <h3>Role: {role}</h3>
             <p>Week: {week}</p>
             <p>Inventory: {roleData.inventory[week - 1]}</p>
             <p>Backlog: {roleData.backlog[week - 1]}</p>
-            {outgoingOrder && <p style={{ color: "green" }}>Outgoing order: {outgoingOrder}</p>}
+            {outgoingOrder && <p className="outgoing-order">Outgoing order: {outgoingOrder}</p>}
 
-            <form onSubmit={submitOrder}>
-                <input name="amount" type="number" placeholder="Order amount" required />
-                <button type="submit">Place Order</button>
-            </form>
-
-            {message && <p style={{ color: "green" }}>{message}</p>}
+            {week < 10 ? (
+                <form onSubmit={submitOrder}>
+                    <input name="amount" type="number" placeholder="Order amount" required />
+                    <button type="submit">Place Order</button>
+                    {message && <p className="message">{message}</p>}
+                </form>
+            ) : (
+                <div className="chart-section">
+                    <GameGraphs game={game} />
+                </div>
+            )}
         </div>
     );
 }
