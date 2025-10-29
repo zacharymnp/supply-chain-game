@@ -80,3 +80,15 @@
 .customer-order-chart {
     height: 30%;
 }
+
+.chart-container label {
+    display: inline-block;
+    margin-right: 1rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.chart-container input[type="checkbox"] {
+    margin-right: 0.3rem;
+    cursor: pointer;
+}
