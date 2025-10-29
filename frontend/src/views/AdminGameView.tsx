@@ -95,7 +95,7 @@ export function AdminGameView({ socket, token, game }: Props) {
 
         if (response.ok) {
             setMessage(`Customer order of ${amount} added successfully!`);
-            setNewCustomerOrder(0);
+            setNewCustomerOrder(amount);
         }
         else {
             setMessage("Failed to add customer order.");
