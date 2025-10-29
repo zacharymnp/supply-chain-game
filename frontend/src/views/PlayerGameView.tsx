@@ -95,7 +95,7 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
             <p>Backlog: {roleData.backlog[week - 1]}</p>
             {outgoingOrder && <p className="outgoing-order">Outgoing order: {outgoingOrder}</p>}
 
-            {week < 10 ? (
+            {week < 50 ? (
                 <form onSubmit={submitOrder}>
                     <input name="amount" type="number" placeholder="Order amount" required />
                     <button type="submit">Place Order</button>

@@ -112,7 +112,7 @@ export function AdminGameView({ socket, token, game }: Props) {
             <h2>Facilitator Panel - Room: {roomCode}</h2>
             <p>Current week: {week}</p>
 
-            {week < 10 ? (
+            {week < 50 ? (
                 <>
                     <h3>Order Status</h3>
                     <ul>
