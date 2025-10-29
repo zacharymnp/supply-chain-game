@@ -21,15 +21,17 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
     useEffect(() => {
         socket.emit("joinRoom", roomCode);
 
-        socket.on("stateUpdate", (updatedGame: Game) => {
+
+        const handleStateUpdate = (updatedGame: Game) => {
             if (updatedGame.roomCode === roomCode) {
                 void getOutgoingOrder();
-                console.log("Game state updated");
             }
-        });
+        };
+
+        socket.on("stateUpdate", handleStateUpdate);
 
         return () => {
-            socket.off("stateUpdate");
+            socket.off("stateUpdate", handleStateUpdate);
         };
     }, [socket, roomCode, week]);
 
