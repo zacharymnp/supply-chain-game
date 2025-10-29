@@ -44,4 +44,5 @@ model Order {
   week      Int
   createdAt DateTime @default(now())
   game      Game     @relation(fields: [gameId], references: [id])
+  @@unique([gameId, role, week], name: "gameId_role_week_key")
 }

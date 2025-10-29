@@ -280,8 +280,11 @@ app.post("/api/order", async (request, response) => {
         });
         if (!game) return response.status(404).json({ error: "Game not found" });
 
-        await prisma.order.create({
-            data: { gameId: game.id, role, amount, week },
+        // add new order, or update order if one has already been added
+        await prisma.order.upsert({
+            create: { gameId: game.id, role, amount, week },
+            update: { amount },
+            where: { gameId_role_week_key: { gameId: game.id, role, week }},
         });
 
         const updatedGame = await prisma.game.findUnique({
