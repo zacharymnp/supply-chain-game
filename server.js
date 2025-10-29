@@ -195,19 +195,19 @@ app.get("/api/game/:roomCode", async (request, response) => {
  * Gets the order status for all roles in the current week
  */
 app.get("/api/orderStatus", requireRole(["ADMIN"]), async (request, response) => {
-    const { roomCode, week } = request.query;
+    const { roomCode } = request.query;
 
     try {
         const game = await prisma.game.findUnique({
             where: { roomCode },
-            select: { id: true },
+            select: { id: true, week: true },
         });
         if (!game) return response.status(404).json({ error: "Game not found" });
 
         const orders = await prisma.order.findMany({
             where: {
                 gameId: game.id,
-                week: Number(week),
+                week: game.week,
             },
             select: { role: true },
         });
@@ -219,6 +219,47 @@ app.get("/api/orderStatus", requireRole(["ADMIN"]), async (request, response) =>
         }
 
         response.json({ success: true, status });
+    }
+    catch (error) {
+        console.error(error);
+        response.status(500).json({ error: "Server error" });
+    }
+});
+
+/**
+ * Gets the outgoing order in a given week for a particular role
+ */
+app.get("/api/outgoingOrder", async (request, response) => {
+    const { roomCode, week, role } = request.query;
+
+    try {
+        const game = await prisma.game.findUnique({
+            where: { roomCode },
+            select: { id: true, state: true, week: true },
+        });
+        if (!game) return response.status(404).json({ error: "Game not found" });
+
+        let orderAmount;
+        if (game.week === 1) {
+            orderAmount = -1; // no previous order
+        }
+        else if (role === "RETAILER") {
+            orderAmount = game.state.customerOrder[game.week - 2];
+        }
+        else {
+            const roles = ["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY"];
+            const order = await prisma.order.findFirst({
+                where: {
+                    gameId: game.id,
+                    week: game.week - 1,
+                    role: roles[roles.indexOf(role) - 1],
+                },
+                select: { amount: true },
+            });
+            orderAmount = order.amount;
+        }
+
+        response.json({ success: true, amount: orderAmount });
     }
     catch (error) {
         console.error(error);

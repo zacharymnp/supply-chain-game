@@ -14,6 +14,7 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
     const { roomCode, week, state: gameState } = game;
     const roleData = gameState.roles[role];
 
+    const [outgoingOrder, setOutgoingOrder] = useState<string>("");
     const [message, setMessage] = useState<string>("");
 
 // -------------------- CONNECT SOCKET --------------------
@@ -22,6 +23,7 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
 
         socket.on("stateUpdate", (updatedGame: Game) => {
             if (updatedGame.roomCode === roomCode) {
+                void getOutgoingOrder();
                 console.log("Game state updated");
             }
         });
@@ -29,7 +31,7 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
         return () => {
             socket.off("stateUpdate");
         };
-    }, [socket, roomCode]);
+    }, [socket, roomCode, week]);
 
 // -------------------- PLACE ORDER --------------------
     async function submitOrder(event: React.FormEvent) {
@@ -64,6 +66,22 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
         }
     }
 
+// -------------------- GET OUTGOING ORDER --------------------
+    async function getOutgoingOrder() {
+        try {
+            const response = await fetch(`/api/outgoingOrder?roomCode=${roomCode}&role=${role}`, {
+                method: "GET",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!response.ok) throw new Error("Failed to fetch outgoing order");
+            const data = await response.json();
+            if (data.amount > -1) setOutgoingOrder(data.amount);
+        }
+        catch (error) {
+            console.error("Failed to get outgoing order", error);
+        }
+    }
+
 // -------------------- PLAYER GAME VIEW --------------------
     return (
         <div>
@@ -72,6 +90,7 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
             <p>Week: {week}</p>
             <p>Inventory: {roleData.inventory[week - 1]}</p>
             <p>Backlog: {roleData.backlog[week - 1]}</p>
+            {outgoingOrder && <p style={{ color: "green" }}>Outgoing order: {outgoingOrder}</p>}
 
             <form onSubmit={submitOrder}>
                 <input name="amount" type="number" placeholder="Order amount" required />

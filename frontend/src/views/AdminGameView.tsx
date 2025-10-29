@@ -21,7 +21,7 @@ export function AdminGameView({ socket, token, game }: Props) {
     async function getOrderStatus() {
         try {
             // check team orders
-            const response = await fetch(`/api/orderStatus?roomCode=${roomCode}&week=${week}`, {
+            const response = await fetch(`/api/orderStatus?roomCode=${roomCode}`, {
                 method: "GET",
                 headers: { Authorization: `Bearer ${token}` },
             });
