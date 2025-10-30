@@ -97,7 +97,7 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
 
             {week < 50 ? (
                 <form onSubmit={submitOrder}>
-                    <input name="amount" type="number" placeholder="Order amount" required />
+                    <input name="amount" type="number" placeholder="Order amount" min={0} required />
                     <button type="submit">Place Order</button>
                     {message && <p className="message">{message}</p>}
                 </form>

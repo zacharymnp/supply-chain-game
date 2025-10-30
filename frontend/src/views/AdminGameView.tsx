@@ -14,9 +14,14 @@ export function AdminGameView({ socket, token, game }: Props) {
     const { roomCode, week, state: gameState } = game;
 
     const [newCustomerOrder, setNewCustomerOrder] = useState<number>(0);
-    const [customerOrderPlaced, setCustomerOrderPlaced] = useState<boolean>(false);
     const [message, setMessage] = useState<string>("");
-    const [orderStatus, setOrderStatus] = useState<Record<string, boolean>>({});
+    const [orderStatus, setOrderStatus] = useState<Record<string, { amount: number }>>({
+        RETAILER: { amount: -1 },
+        WHOLESALER: { amount: -1 },
+        DISTRIBUTOR: { amount: -1 },
+        FACTORY: { amount: -1 },
+        CUSTOMER: { amount: -1 },
+    });
 
 // -------------------- CONFIRM ORDER STATUSES --------------------
     async function getOrderStatus() {
@@ -29,19 +34,9 @@ export function AdminGameView({ socket, token, game }: Props) {
             if (!response.ok) throw new Error("Failed to fetch order status");
             const data = await response.json();
             setOrderStatus(data.status);
-
-            // check customer order
-            const gameResponse = await fetch(`/api/game/${roomCode}`, {
-                method: "GET",
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (gameResponse.ok) {
-                const gameData = await gameResponse.json();
-                setCustomerOrderPlaced(gameData.state.customerOrder.length >= week);
-            }
         }
         catch (error) {
-            console.error("Failed to check customer order", error);
+            console.error("Failed to check order statuses", error);
         }
     }
 
@@ -52,7 +47,13 @@ export function AdminGameView({ socket, token, game }: Props) {
 
         const handleStateUpdate = (updatedGame: Game) => {
             if (updatedGame.roomCode === roomCode) {
-                setOrderStatus({});
+                setOrderStatus({
+                    RETAILER: { amount: -1 },
+                    WHOLESALER: { amount: -1 },
+                    DISTRIBUTOR: { amount: -1 },
+                    FACTORY: { amount: -1 },
+                    CUSTOMER: { amount: -1 },
+                });
                 void getOrderStatus();
             }
         };
@@ -103,8 +104,7 @@ export function AdminGameView({ socket, token, game }: Props) {
     }
 
 // -------------------- COMPUTE ORDER STATUS --------------------
-    const allOrdersPlaced = Object.values(orderStatus).every((placed) => placed)
-        && customerOrderPlaced;
+    const allOrdersPlaced = Object.values(orderStatus).every((order) => order.amount >= 0);
 
 // -------------------- ADMIN GAME VIEW --------------------
     return (
@@ -116,11 +116,11 @@ export function AdminGameView({ socket, token, game }: Props) {
                 <>
                     <h3>Order Status</h3>
                     <ul>
-                        {["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY"].map((role) => (
+                        {["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY", "CUSTOMER"].map((role) => (
                             <li key={role}>
                                 {role}:{" "}
-                                {orderStatus[role] ? (
-                                    <span className="order-placed">Order Placed</span>
+                                {orderStatus[role].amount >= 0 ? (
+                                    <span className="order-placed">Order Placed ({orderStatus[role].amount})</span>
                                 ) : (
                                     <span className="order-awaiting">Awaiting Order</span>
                                 )}

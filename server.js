@@ -200,7 +200,7 @@ app.get("/api/orderStatus", requireRole(["ADMIN"]), async (request, response) =>
     try {
         const game = await prisma.game.findUnique({
             where: { roomCode },
-            select: { id: true, week: true },
+            select: { id: true, week: true, state:true },
         });
         if (!game) return response.status(404).json({ error: "Game not found" });
 
@@ -209,13 +209,26 @@ app.get("/api/orderStatus", requireRole(["ADMIN"]), async (request, response) =>
                 gameId: game.id,
                 week: game.week,
             },
-            select: { role: true },
+            select: { role: true, amount: true },
         });
 
         const roles = ["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY"];
         const status = {};
         for (const role of roles) {
-            status[role] = orders.some((order) => order.role === role);
+            const order = orders.find((order) => order.role === role);
+            if (order) {
+                status[role] = { amount: order.amount };
+            }
+            else {
+                status[role] = { amount: -1 };
+            }
+        }
+
+        if (game.state.customerOrder >= game.week) {
+            status["CUSTOMER"] = { amount: game.state.customerOrder[game.week - 1] };
+        }
+        else {
+            status["CUSTOMER"] = { amount: -1 };
         }
 
         response.json({ success: true, status });
