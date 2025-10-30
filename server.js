@@ -224,7 +224,7 @@ app.get("/api/orderStatus", requireRole(["ADMIN"]), async (request, response) =>
             }
         }
 
-        if (game.state.customerOrder >= game.week) {
+        if (game.state.customerOrder.length >= game.week) {
             status["CUSTOMER"] = { amount: game.state.customerOrder[game.week - 1] };
         }
         else {
