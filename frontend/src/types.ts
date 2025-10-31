@@ -15,7 +15,6 @@ export interface Order {
 
 export interface RoleState {
     inventory: number[];
-    backlog: number[];
 }
 
 export interface GameState {

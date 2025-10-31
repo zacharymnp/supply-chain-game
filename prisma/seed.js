@@ -14,10 +14,10 @@ async function main() {
             state: {
                 customerOrder: [4],
                 roles: {
-                    RETAILER: { inventory: [12], backlog: [0] },
-                    WHOLESALER: { inventory: [12], backlog: [0] },
-                    DISTRIBUTOR: { inventory: [12], backlog: [0] },
-                    FACTORY: { inventory: [12], backlog: [0] },
+                    RETAILER: { inventory: [12] },
+                    WHOLESALER: { inventory: [12] },
+                    DISTRIBUTOR: { inventory: [12] },
+                    FACTORY: { inventory: [12] },
                 },
             },
             orders: {

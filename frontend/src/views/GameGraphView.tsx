@@ -13,25 +13,17 @@ export function GameGraphs({ game }: Props) {
     const chartData = Array.from({ length: game.week }, (_, i) => ({
         week: i + 1,
         retailerInventory: roleData.RETAILER.inventory[i],
-        retailerBacklog: roleData.RETAILER.backlog[i],
         wholesalerInventory: roleData.WHOLESALER.inventory[i],
-        wholesalerBacklog: roleData.WHOLESALER.backlog[i],
         distributorInventory: roleData.DISTRIBUTOR.inventory[i],
-        distributorBacklog: roleData.DISTRIBUTOR.backlog[i],
         factoryInventory: roleData.FACTORY.inventory[i],
-        factoryBacklog: roleData.FACTORY.backlog[i],
         customerOrder: game.state.customerOrder[i],
     }));
 
     const lines = [
         { key: "retailerInventory", label: "Retailer Inventory", color: "#8884d8" },
-        { key: "retailerBacklog", label: "Retailer Backlog", color: "#82ca9d" },
         { key: "wholesalerInventory", label: "Wholesaler Inventory", color: "#ff7300" },
-        { key: "wholesalerBacklog", label: "Wholesaler Backlog", color: "#387908" },
         { key: "distributorInventory", label: "Distributor Inventory", color: "#0088FE" },
-        { key: "distributorBacklog", label: "Distributor Backlog", color: "#00C49F" },
         { key: "factoryInventory", label: "Factory Inventory", color: "#FFBB28" },
-        { key: "factoryBacklog", label: "Factory Backlog", color: "#FF8042" },
     ];
 
     const [visibleLines, setVisibleLines] = useState<string[]>(lines.map((line) => line.key));
@@ -55,8 +47,8 @@ export function GameGraphs({ game }: Props) {
                 </label>
             ))}
 
-            <h3>Inventory and Backlog by Role</h3>
-            <ResponsiveContainer width="100%" className="inventory-backlog-chart">
+            <h3>Inventory by Role</h3>
+            <ResponsiveContainer width="100%" className="inventory-chart">
                 <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="week" />

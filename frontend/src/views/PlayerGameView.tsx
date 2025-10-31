@@ -91,8 +91,11 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
             <h2>Room: {roomCode}</h2>
             <h3>Role: {role}</h3>
             <p>Week: {week}</p>
-            <p>Inventory: {roleData.inventory[week - 1]}</p>
-            <p>Backlog: {roleData.backlog[week - 1]}</p>
+            <p>
+                {roleData.inventory[week - 1] >= 0
+                ? `Inventory: ${roleData.inventory[week - 1]}`
+                : `Backlog: ${-roleData.inventory[week - 1]}`}
+            </p>
             {outgoingOrder && <p className="outgoing-order">Outgoing order: {outgoingOrder}</p>}
 
             {week < 50 ? (
