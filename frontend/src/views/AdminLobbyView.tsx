@@ -37,6 +37,52 @@ export function AdminLobbyView({ token, availableRooms, onRoomSelect, refreshRoo
         }
     }
 
+// -------------------- ADVANCE WEEKS IN ALL SELECTED ROOMS --------------------
+    async function advanceWeekMultiple(event: React.FormEvent) {
+        event.preventDefault();
+        try {
+            // TODO: add a way to add customer orders
+            let allOrdersIn = true;
+            for (const room of availableRooms) {
+                const response = await fetch(`/api/orderStatus?roomCode=${room}`, {
+                    method: "GET",
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!response.ok) throw new Error("Failed to fetch order status");
+                const data = await response.json();
+                for (const role in data.status) {
+                    if (data.status[role].amount === -1) {
+                        allOrdersIn = false;
+                        break;
+                    }
+                }
+            }
+
+            if (!allOrdersIn) {
+                setMessage("Not all orders are placed yet.");
+            }
+            else {
+                for (const room of availableRooms) {
+                    const response = await fetch("/api/advanceWeek", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ roomCode: room }),
+                    });
+                    if (!response.ok) throw new Error("Failed to advance week");
+                }
+                setMessage("Advanced week for all rooms.");
+            }
+        }
+        catch (error) {
+            console.error("Failed to advance all selected weeks", error);
+            setMessage("Error advancing weeks.");
+        }
+
+    }
+
 // -------------------- ADMIN LOBBY VIEW --------------------
     return (
         <div className="lobby-container">
@@ -51,7 +97,6 @@ export function AdminLobbyView({ token, availableRooms, onRoomSelect, refreshRoo
                 />
                 <button type="submit">Create Team</button>
             </form>
-            {message && <p>{message}</p>}
 
             <h3>Or join an existing room</h3>
             {availableRooms.length === 0 ? (
@@ -66,6 +111,11 @@ export function AdminLobbyView({ token, availableRooms, onRoomSelect, refreshRoo
                     ))}
                 </ul>
             )}
+
+            <button onClick={advanceWeekMultiple}>Advance Week for All Rooms</button>
+
+            {message && <p>{message}</p>}
+
             <form className="logout-form" onSubmit={handleLogout}>
                     <button type="submit">Logout</button>
             </form>
