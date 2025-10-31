@@ -151,7 +151,7 @@ export function AdminGameView({ socket, token, game }: Props) {
                 </>
             ) : (
                 <div className="chart-section">
-                    <GameGraphs game={game} />
+                    <GameGraphs token={token} game={game} />
                 </div>
             )}
         </div>

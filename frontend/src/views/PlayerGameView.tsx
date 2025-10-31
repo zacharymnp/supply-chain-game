@@ -106,7 +106,7 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
                 </form>
             ) : (
                 <div className="chart-section">
-                    <GameGraphs game={game} />
+                    <GameGraphs token={token} game={game} />
                 </div>
             )}
         </div>

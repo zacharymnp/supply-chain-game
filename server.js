@@ -240,6 +240,40 @@ app.get("/api/orderStatus", requireRole(["ADMIN"]), async (request, response) =>
 });
 
 /**
+ * Gets all orders from a room and the end of the game
+ */
+app.get("/api/allOrders", async (request, response) => {
+    const { roomCode } = request.query;
+
+    try {
+        const game = await prisma.game.findUnique({
+            where: { roomCode },
+            select: { id: true },
+        });
+        if (!game) return response.status(404).json({ error: "Game not found" });
+
+        const orders = await prisma.order.findMany({
+            where: {
+                gameId: game.id,
+            },
+            select: { role: true, amount: true, week: true },
+        });
+
+        const orderMap = {};
+        for (const { role, amount, week } of orders) {
+            if (!orderMap[role]) orderMap[role] = {};
+            if (week > 0) orderMap[role][week] = amount; // do not include the faux orders from weeks -1 and 0
+        }
+
+        response.json({ success: true, orders: orderMap });
+    }
+    catch (error) {
+        console.error(error);
+        response.status(500).json({ error: "Server error" });
+    }
+});
+
+/**
  * Gets the outgoing order in a given week for a particular role
  */
 app.get("/api/outgoingOrder", async (request, response) => {
@@ -384,9 +418,8 @@ app.post("/api/advanceWeek", requireRole(["ADMIN"]), async (request, response) =
         // process arriving orders
         for (const order of orders) {
             const roleState = gameState.roles[order.role];
-            if (order.week <= currentWeek - 2) {
+            if (order.week === currentWeek - 2) {
                 roleState.inventory[nextWeek - 1] += order.amount;
-                await prisma.order.delete({where: { id: order.id } });
             }
         }
         // process departing orders
