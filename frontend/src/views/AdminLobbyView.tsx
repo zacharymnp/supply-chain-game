@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "./LobbyView.css";
+import "../styles/LobbyView.css";
 
 interface Props {
     token: string;
@@ -36,6 +36,7 @@ export function AdminLobbyView({ token, availableRooms, onRoomSelect, refreshRoo
         }
         else {
             setError("Failed to create room");
+            setTimeout(() => setError(""), 10000);
         }
     }
 
@@ -174,7 +175,7 @@ export function AdminLobbyView({ token, availableRooms, onRoomSelect, refreshRoo
                     </form>
                 </div>
                 <div className="lobby-panel">
-                    <form onSubmit={addOrdersAndAdvanceAll} style={{ marginTop: "1rem" }}>
+                    <form onSubmit={addOrdersAndAdvanceAll}>
                         <input
                             type="number"
                             placeholder="Customer order amount"

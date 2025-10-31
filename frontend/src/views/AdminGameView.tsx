@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import type { Game } from "types";
 import { GameGraphs } from "./GameGraphView";
-import "./GameView.css";
+import "../styles/GameView.css";
 import { Socket } from "socket.io-client";
 
 interface Props {

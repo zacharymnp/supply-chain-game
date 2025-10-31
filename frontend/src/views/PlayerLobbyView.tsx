@@ -1,5 +1,5 @@
 import type { Role } from "types";
-import "./LobbyView.css";
+import "../styles/LobbyView.css";
 
 interface Props {
     availableRooms: string[];
@@ -18,7 +18,7 @@ export function PlayerLobbyView({ availableRooms, onRoomSelect }: Props) {
             {availableRooms.length === 0 ? (
                 <p>No active teams. Please wait for an admin to create one.</p>
             ) : (
-                <form
+                <form className="join-room-form"
                     onSubmit={(event) => {
                         event.preventDefault();
                         const form = event.currentTarget;

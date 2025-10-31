@@ -5,7 +5,7 @@ import { PlayerGameView } from "./views/PlayerGameView.tsx";
 import { PlayerLobbyView } from "./views/PlayerLobbyView.tsx";
 import { AdminLobbyView } from "./views/AdminLobbyView.tsx";
 import { AdminGameView } from "./views/AdminGameView.tsx";
-import "./views/LobbyView.css";
+import "./styles/LobbyView.css";
 
 import type { Game } from "./types";
 import { Role } from "/types";
