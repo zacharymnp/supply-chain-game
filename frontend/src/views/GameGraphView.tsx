@@ -18,6 +18,21 @@ export function GameGraphs({ token, game }: Props) {
         FACTORY: {},
     });
 
+// -------------------- CALCULATE COSTS --------------------
+    const roles = ["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY"] as const;
+    const costs: Record<string, number> = {
+        RETAILER: 0,
+        WHOLESALER: 0,
+        DISTRIBUTOR: 0,
+        FACTORY: 0,
+    };
+    for (let weekIndex = 0; weekIndex < week; weekIndex++) {
+        for (const role of roles) {
+            const inventory = roleData[role].inventory[weekIndex]
+            costs[role] += inventory > 0 ? inventory * 0.5 : -inventory;
+        }
+    }
+
 // -------------------- GET ORDER DATA --------------------
     async function getOrders() {
         try {
@@ -83,6 +98,26 @@ export function GameGraphs({ token, game }: Props) {
 // -------------------- GRAPH VIEW --------------------
     return (
         <div className="chart-container">
+            <h3>Costs</h3>
+            <table style={{ borderCollapse: "collapse", width: "100%" }}>
+                <thead>
+                <tr>
+                    <th style={{ border: "1px solid #ccc", padding: "8px" }}>Role</th>
+                    <th style={{ border: "1px solid #ccc", padding: "8px" }}>Total Cost ($)</th>
+                </tr>
+                </thead>
+                <tbody>
+                {roles.map((role) => (
+                    <tr key={role}>
+                        <td style={{ border: "1px solid #ccc", padding: "8px" }}>{role}</td>
+                        <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                            {costs[role].toFixed(2)}
+                        </td>
+                    </tr>
+                ))}
+                </tbody>
+            </table>
+
             <h3>Inventory by Role</h3>
             <ResponsiveContainer width="100%" className="inventory-chart">
                 <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
