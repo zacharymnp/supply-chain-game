@@ -386,6 +386,48 @@ app.post("/api/customerOrder", requireRole(["ADMIN"]), async (request, response)
 });
 
 /**
+ * Adds next week's customer order for many rooms
+ */
+app.post("/api/customerOrderMultiple", requireRole(["ADMIN"]), async (request, response) => {
+    const { roomCodes, amount } = request.body;
+
+    if (!Array.isArray(roomCodes) || typeof amount !== "number") {
+        return response.status(400).json({ error: "Invalid input" });
+    }
+
+    try {
+        for (const roomCode of roomCodes) {
+            const game = await prisma.game.findUnique({
+                where: { roomCode },
+                select: { id: true, week: true, state: true },
+            });
+            if (!game) continue;
+            const gameState = game.state;
+
+            // add new order, or update order if one has already been added
+            if (gameState.customerOrder.length < game.week) {
+                gameState.customerOrder.push(amount);
+            }
+            else {
+                gameState.customerOrder[game.week - 1] = amount;
+            }
+
+            const updatedGame = await prisma.game.update({
+                where: { id: game.id },
+                data: { state: gameState },
+            });
+            io.emit("stateUpdate", updatedGame);
+        }
+
+        response.json({ success: true });
+    }
+    catch (error) {
+        console.error(error);
+        response.status(500).json({ error: "Server error" });
+    }
+});
+
+/**
  * Admins advance the week in a particular room
  */
 app.post("/api/advanceWeek", requireRole(["ADMIN"]), async (request, response) => {
