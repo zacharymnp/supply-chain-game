@@ -88,7 +88,7 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
 // -------------------- PLAYER GAME VIEW --------------------
     return (
         <div className="game-view-container">
-            <h2>Room: {roomCode}</h2>
+            <h2>Team: {roomCode}</h2>
             <h3>Role: {role}</h3>
             <p>Week: {week}</p>
             <p>

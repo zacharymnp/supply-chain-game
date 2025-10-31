@@ -14,9 +14,9 @@ export function PlayerLobbyView({ availableRooms, onRoomSelect }: Props) {
 // -------------------- PLAYER LOBBY VIEW --------------------
     return (
         <div className="lobby-container">
-            <h2>Select Room & Role</h2>
+            <h2>Select Team & Role</h2>
             {availableRooms.length === 0 ? (
-                <p>No active rooms. Please wait for an admin to create one.</p>
+                <p>No active teams. Please wait for an admin to create one.</p>
             ) : (
                 <form
                     onSubmit={(event) => {
@@ -28,7 +28,7 @@ export function PlayerLobbyView({ availableRooms, onRoomSelect }: Props) {
                     }}
                 >
                     <label>
-                        Room:
+                        Team:
                         <select name="roomCode" required>
                             {availableRooms.map((room) => (
                                 <option key={room} value={room}>

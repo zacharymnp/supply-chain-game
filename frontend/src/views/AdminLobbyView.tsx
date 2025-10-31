@@ -44,12 +44,12 @@ export function AdminLobbyView({ token, availableRooms, onRoomSelect, refreshRoo
 
             <form onSubmit={createRoom}>
                 <input
-                    placeholder="New Room Code"
+                    placeholder="New Team Code"
                     value={newRoomCode}
                     onChange={(event) => setNewRoomCode(event.target.value)}
                     required
                 />
-                <button type="submit">Create Room</button>
+                <button type="submit">Create Team</button>
             </form>
             {message && <p>{message}</p>}
 

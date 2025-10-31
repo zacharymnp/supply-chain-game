@@ -109,7 +109,7 @@ export function AdminGameView({ socket, token, game }: Props) {
 // -------------------- ADMIN GAME VIEW --------------------
     return (
         <div className="game-view-container">
-            <h2>Facilitator Panel - Room: {roomCode}</h2>
+            <h2>Facilitator Panel - Team: {roomCode}</h2>
             <p>Current week: {week}</p>
 
             {week < 50 ? (
