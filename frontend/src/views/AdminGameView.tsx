@@ -15,6 +15,7 @@ export function AdminGameView({ socket, token, game }: Props) {
 
     const [newCustomerOrder, setNewCustomerOrder] = useState<number>(0);
     const [message, setMessage] = useState<string>("");
+    const [showGraphs, setShowGraphs] = useState(false);
     const [orderStatus, setOrderStatus] = useState<Record<string, { amount: number }>>({
         RETAILER: { amount: -1 },
         WHOLESALER: { amount: -1 },
@@ -65,6 +66,16 @@ export function AdminGameView({ socket, token, game }: Props) {
         };
     }, [socket, roomCode, week, token]);
 
+// -------------------- PROCESS SERVER SENT EVENTS --------------------
+    useEffect(() => {
+        const eventSource = new EventSource(`/api/events/${roomCode}`);
+        eventSource.addEventListener("showGraphs", (event) => {
+            const data = JSON.parse((event as any).data);
+            setShowGraphs(data.show);
+        });
+        return () => eventSource.close();
+    }, [roomCode]);
+
 // -------------------- ADVANCE WEEK --------------------
     async function nextWeek(event: React.MouseEvent<HTMLButtonElement>) {
         event.preventDefault();
@@ -110,10 +121,10 @@ export function AdminGameView({ socket, token, game }: Props) {
     return (
         <div className="game-view-container">
             <h2>Facilitator Panel - Team: {roomCode}</h2>
-            <p>Current week: {week}</p>
 
-            {week < 50 ? (
-                <>
+            {!showGraphs ? (
+                <div>
+                    <p>Current week: {week}</p>
                     <h3>Order Status</h3>
                     <ul>
                         {["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY", "CUSTOMER"].map((role) => (
@@ -148,7 +159,7 @@ export function AdminGameView({ socket, token, game }: Props) {
 
                     <h3>Full Game State</h3>
                     <pre>{JSON.stringify(gameState, null, 2)}</pre>
-                </>
+                </div>
             ) : (
                 <div className="chart-section">
                     <GameGraphs token={token} game={game} />

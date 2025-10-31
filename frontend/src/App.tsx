@@ -123,7 +123,7 @@ export default function App() {
 
         // initialize socket connection
         const socket = io("http://localhost:5000", {
-            query: {roomCode },
+            query: { roomCode },
             auth: { token },
         });
         socketReference.current = socket;

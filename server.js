@@ -60,6 +60,50 @@ function requireRole(roles) {
     };
 }
 
+// -------------------- SERVER SENT EVENTS --------------------
+const sseClients = {};
+const roomGraphState = {};
+
+app.get("/api/events/:roomCode", (request, response) => {
+    const { roomCode } = request.params;
+
+    response.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+    });
+
+    if (!sseClients[roomCode]) sseClients[roomCode] = new Set();
+    sseClients[roomCode].add(response);
+
+    const showGraphs = roomGraphState[roomCode] ?? false;
+    response.write(`event: showGraphs\ndata: ${JSON.stringify({ show: showGraphs })}\n\n`);
+
+    const keepAlive = setInterval(() => response.write(":\n\n"), 15000);
+
+    request.on("close", () => {
+        clearInterval(keepAlive);
+        sseClients[roomCode].delete(response);
+    });
+});
+
+app.post("/api/showGraphs", (request, response) => {
+    const { roomCodes } = request.body;
+    if (!Array.isArray(roomCodes)) return response.status(400).send("Invalid input");
+
+    roomCodes.forEach(roomCode => {
+        roomGraphState[roomCode] = true;
+        const clients = sseClients[roomCode];
+        if (clients) {
+            for (const client of clients) {
+                client.write(`event: showGraphs\ndata: ${JSON.stringify({ show: true })}\n\n`);
+            }
+        }
+    });
+
+    response.send({ success: true });
+});
+
 // -------------------- ROUTES --------------------
 /**
  * Generates a new game with a given roomCode

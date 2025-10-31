@@ -121,6 +121,23 @@ export function AdminLobbyView({ token, availableRooms, onRoomSelect, refreshRoo
         }
     }
 
+// -------------------- SHOW GRAPHS FOR ALL ROOMS --------------------
+    async function showGraphsForAllRooms() {
+        try {
+            await fetch("/api/showGraphs", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ roomCodes: availableRooms }),
+            });
+        }
+        catch (error) {
+            console.error("Failed to trigger showGraphs:", error);
+        }
+    }
+
 // -------------------- ADMIN LOBBY VIEW --------------------
     return (
         <div className="lobby-container">
@@ -172,6 +189,10 @@ export function AdminLobbyView({ token, availableRooms, onRoomSelect, refreshRoo
                     {message && <p className="message">{message}</p>}
 
                     {error && <p className="error">{error}</p>}
+
+                    <button onClick={showGraphsForAllRooms}>
+                        Show Graphs for All Rooms
+                    </button>
                 </div>
             </div>
         </div>

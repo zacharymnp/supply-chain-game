@@ -17,6 +17,7 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
 
     const [outgoingOrder, setOutgoingOrder] = useState<string>("");
     const [message, setMessage] = useState<string>("");
+    const [showGraphs, setShowGraphs] = useState(false);
 
 // -------------------- CONNECT SOCKET --------------------
     useEffect(() => {
@@ -35,6 +36,16 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
             socket.off("stateUpdate", handleStateUpdate);
         };
     }, [socket, roomCode, week]);
+
+// -------------------- PROCESS SERVER SENT EVENTS --------------------
+    useEffect(() => {
+        const eventSource = new EventSource(`/api/events/${roomCode}`);
+        eventSource.addEventListener("showGraphs", (event) => {
+            const data = JSON.parse((event as any).data);
+            setShowGraphs(data.show);
+        });
+        return () => eventSource.close();
+    }, [roomCode]);
 
 // -------------------- PLACE ORDER --------------------
     async function submitOrder(event: React.FormEvent) {
@@ -89,21 +100,23 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
     return (
         <div className="game-view-container">
             <h2>Team: {roomCode}</h2>
-            <h3>Role: {role}</h3>
-            <p>Week: {week}</p>
-            <p>
-                {roleData.inventory[week - 1] >= 0
-                ? `Inventory: ${roleData.inventory[week - 1]}`
-                : `Backlog: ${-roleData.inventory[week - 1]}`}
-            </p>
-            {outgoingOrder && <p className="outgoing-order">Outgoing order: {outgoingOrder}</p>}
+            {!showGraphs ? (
+                <div>
+                    <h3>Role: {role}</h3>
+                    <p>Week: {week}</p>
+                    <p>
+                    {roleData.inventory[week - 1] >= 0
+                        ? `Inventory: ${roleData.inventory[week - 1]}`
+                        : `Backlog: ${-roleData.inventory[week - 1]}`}
+                     </p>
+                    {outgoingOrder && <p className="outgoing-order">Outgoing order: {outgoingOrder}</p>}
 
-            {week < 50 ? (
-                <form onSubmit={submitOrder}>
-                    <input name="amount" type="number" placeholder="Order amount" min={0} required />
-                    <button type="submit">Place Order</button>
-                    {message && <p className="message">{message}</p>}
-                </form>
+                    <form onSubmit={submitOrder}>
+                        <input name="amount" type="number" placeholder="Order amount" min={0} required />
+                        <button type="submit">Place Order</button>
+                        {message && <p className="message">{message}</p>}
+                    </form>
+                </div>
             ) : (
                 <div className="chart-section">
                     <GameGraphs token={token} game={game} />
