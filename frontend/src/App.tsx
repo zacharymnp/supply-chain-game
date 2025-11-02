@@ -8,7 +8,7 @@ import { AdminGameView } from "./views/AdminGameView.tsx";
 import "./styles/LobbyView.css";
 
 import type { Game } from "./types";
-import { Role } from "/types";
+import { Role } from "./types";
 
 export default function App() {
     const [game, setGame] = useState<Game | null>(null);
