@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Game } from "types";
 import { GameGraphs } from "./GameGraphView";
 import "../styles/GameView.css";
@@ -8,13 +8,12 @@ interface Props {
     socket: Socket;
     token: string;
     game: Game;
+    onExit: () => void;
 }
 
-export function AdminGameView({ socket, token, game }: Props) {
+export function AdminGameView({ socket, token, game, onExit }: Props) {
     const { roomCode, week, state: gameState } = game;
 
-    const [newCustomerOrder, setNewCustomerOrder] = useState<number>(0);
-    const [message, setMessage] = useState<string>("");
     const [showGraphs, setShowGraphs] = useState(false);
     const [orderStatus, setOrderStatus] = useState<Record<string, { amount: number }>>({
         RETAILER: { amount: -1 },
@@ -43,8 +42,9 @@ export function AdminGameView({ socket, token, game }: Props) {
 
 // -------------------- CONNECT SOCKET -----------
     useEffect(() => {
+        if (!socket || !socket.connected) return;
         socket.emit("joinRoom", roomCode);
-        void getOrderStatus(); // initial load
+        void getOrderStatus();
 
         const handleStateUpdate = (updatedGame: Game) => {
             if (updatedGame.roomCode === roomCode) {
@@ -64,7 +64,7 @@ export function AdminGameView({ socket, token, game }: Props) {
         return () => {
             socket.off("stateUpdate", handleStateUpdate);
         };
-    }, [socket, roomCode, week, token]);
+    }, [socket, roomCode]);
 
 // -------------------- PROCESS SERVER SENT EVENTS --------------------
     useEffect(() => {
@@ -76,51 +76,11 @@ export function AdminGameView({ socket, token, game }: Props) {
         return () => eventSource.close();
     }, [roomCode]);
 
-// -------------------- ADVANCE WEEK --------------------
-    async function nextWeek(event: React.MouseEvent<HTMLButtonElement>) {
-        event.preventDefault();
-        await fetch("/api/advanceWeek", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ roomCode }),
-        });
-    }
-
-// -------------------- SUBMIT CUSTOMER ORDER --------------------
-    async function submitCustomerOrder(event: React.FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-
-        const amount = Number(newCustomerOrder);
-        if (isNaN(amount) || amount < 0) return;
-
-        const response = await fetch("/api/customerOrder", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ roomCode, amount }),
-        });
-
-        if (response.ok) {
-            setMessage(`Customer order of ${amount} added successfully!`);
-            setNewCustomerOrder(amount);
-        }
-        else {
-            setMessage("Failed to add customer order.");
-        }
-    }
-
-// -------------------- COMPUTE ORDER STATUS --------------------
-    const allOrdersPlaced = Object.values(orderStatus).every((order) => order.amount >= 0);
-
 // -------------------- ADMIN GAME VIEW --------------------
     return (
         <div className="game-view-container">
             <h2>Facilitator Panel - Team: {roomCode}</h2>
+            <button onClick={onExit}>Return to Full Game View</button>
 
             {!showGraphs ? (
                 <div>
@@ -138,24 +98,6 @@ export function AdminGameView({ socket, token, game }: Props) {
                             </li>
                         ))}
                     </ul>
-
-                    <button onClick={nextWeek} disabled={!allOrdersPlaced}>
-                        {allOrdersPlaced ? "Advance Week" : "Waiting for orders..."}
-                    </button>
-
-                    <form onSubmit={submitCustomerOrder}>
-                        <input
-                            type="number"
-                            placeholder="Customer order amount"
-                            value={newCustomerOrder}
-                            onChange={(event) => setNewCustomerOrder(Number(event.target.value))}
-                            min={0}
-                            required
-                        />
-                        <button type="submit">Add Customer Order</button>
-                    </form>
-
-                    {message && <p className="message">{message}</p>}
 
                     <h3>Full Game State</h3>
                     <pre>{JSON.stringify(gameState, null, 2)}</pre>

@@ -26,12 +26,20 @@ model User {
   game      Game?    @relation(fields: [gameId], references: [id])
 }
 
+model GameGroup {
+  id        Int      @id @default(autoincrement())
+  groupCode String   @unique
+  week      Int      @default(1)
+  games     Game[]
+}
+
 model Game {
   id        Int      @id @default(autoincrement())
   roomCode  String   @unique
-  week      Int      @default(1)
+  groupId   Int
   state     Json
   createdAt DateTime @default(now())
+  group     GameGroup @relation(fields: [groupId], references: [id])
   orders    Order[]
   users     User[]
 }

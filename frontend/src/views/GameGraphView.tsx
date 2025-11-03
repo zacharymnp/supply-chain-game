@@ -11,6 +11,7 @@ export function GameGraphs({ token, game }: Props) {
     const { roomCode, week, state: gameState } = game;
     const roleData = gameState.roles;
 
+
     const [orderData, setOrderData] = useState<Record<string, Record<number, number>>>({
         RETAILER: {},
         WHOLESALER: {},

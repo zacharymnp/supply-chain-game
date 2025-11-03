@@ -7,33 +7,41 @@ async function main() {
     await prisma.order.deleteMany({});
     await prisma.user.deleteMany({});
     await prisma.game.deleteMany({});
+    await prisma.gameGroup.deleteMany({});
 
-    const seedGame = await prisma.game.create({
-        data: {
-            roomCode: "ROOM123",
-            state: {
-                customerOrder: [4],
-                roles: {
-                    RETAILER: { inventory: [12] },
-                    WHOLESALER: { inventory: [12] },
-                    DISTRIBUTOR: { inventory: [12] },
-                    FACTORY: { inventory: [12] },
-                },
-            },
-            orders: {
-                create: [
-                    { role: "RETAILER", amount: 4, week: -1 },
-                    { role: "WHOLESALER", amount: 4, week: -1 },
-                    { role: "DISTRIBUTOR", amount: 4, week: -1 },
-                    { role: "FACTORY", amount: 4, week: -1 },
-                    { role: "RETAILER", amount: 4, week: 0 },
-                    { role: "WHOLESALER", amount: 4, week: 0 },
-                    { role: "DISTRIBUTOR", amount: 4, week: 0 },
-                    { role: "FACTORY", amount: 4, week: 0 },
-                ],
-            },
-        },
+    const seedGroup = await prisma.gameGroup.create({
+        data: { groupCode: "test" }
     });
+
+    for (let i = 0; i < 1; i++) {
+        await prisma.game.create({
+            data: {
+                roomCode: `test-${i}`,
+                groupId: seedGroup.id,
+                state: {
+                    customerOrder: [4],
+                    roles: {
+                        RETAILER: { inventory: [12] },
+                        WHOLESALER: { inventory: [12] },
+                        DISTRIBUTOR: { inventory: [12] },
+                        FACTORY: { inventory: [12] },
+                    },
+                },
+                orders: {
+                    create: [
+                        { role: "RETAILER", amount: 4, week: -1 },
+                        { role: "WHOLESALER", amount: 4, week: -1 },
+                        { role: "DISTRIBUTOR", amount: 4, week: -1 },
+                        { role: "FACTORY", amount: 4, week: -1 },
+                        { role: "RETAILER", amount: 4, week: 0 },
+                        { role: "WHOLESALER", amount: 4, week: 0 },
+                        { role: "DISTRIBUTOR", amount: 4, week: 0 },
+                        { role: "FACTORY", amount: 4, week: 0 },
+                    ],
+                },
+            }
+        });
+    }
 
     const users = [
         { username: "retailer", password: "retailer123", role: Role.RETAILER },
@@ -49,7 +57,6 @@ async function main() {
                 username: user.username,
                 password: await bcrypt.hash(user.password, 10),
                 role: user.role,
-                gameId: seedGame.id,
             },
         });
     }

@@ -21,8 +21,8 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
 
 // -------------------- CONNECT SOCKET --------------------
     useEffect(() => {
+        if (!socket || !socket.connected) return;
         socket.emit("joinRoom", roomCode);
-
 
         const handleStateUpdate = (updatedGame: Game) => {
             if (updatedGame.roomCode === roomCode) {
@@ -35,7 +35,7 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
         return () => {
             socket.off("stateUpdate", handleStateUpdate);
         };
-    }, [socket, roomCode, week]);
+    }, [socket, roomCode]);
 
 // -------------------- PROCESS SERVER SENT EVENTS --------------------
     useEffect(() => {

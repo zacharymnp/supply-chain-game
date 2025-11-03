@@ -105,51 +105,55 @@ app.post("/api/showGraphs", (request, response) => {
 });
 
 // -------------------- ROUTES --------------------
+
 /**
- * Generates a new game with a given roomCode
+ * Generates a group of a particular number of rooms
  */
-app.post("/api/createGame", requireRole([Role.ADMIN]), async (request, response) => {
-    const { roomCode } = request.body;
+app.post("/api/createGroup", requireRole([Role.ADMIN]), async (request, response) => {
+    const { size, name } = request.body;
 
     try {
-        const game = await prisma.game.create({
-            data: {
-                roomCode: roomCode,
-                state: {
-                    customerOrder: [4],
-                    roles: {
-                        RETAILER: { inventory: [12] },
-                        WHOLESALER: { inventory: [12] },
-                        DISTRIBUTOR: { inventory: [12] },
-                        FACTORY: { inventory: [12] },
-                    },
-                },
-                orders: {
-                    create: [
-                        { role: "RETAILER", amount: 4, week: -1 },
-                        { role: "WHOLESALER", amount: 4, week: -1 },
-                        { role: "DISTRIBUTOR", amount: 4, week: -1 },
-                        { role: "FACTORY", amount: 4, week: -1 },
-                        { role: "RETAILER", amount: 4, week: 0 },
-                        { role: "WHOLESALER", amount: 4, week: 0 },
-                        { role: "DISTRIBUTOR", amount: 4, week: 0 },
-                        { role: "FACTORY", amount: 4, week: 0 },
-                    ],
-                },
-            },
+        const group = await prisma.gameGroup.create({
+            data: { groupCode: name }
         });
 
-        console.log(`Created new game with roomCode ${roomCode}`);
+        for (let i = 0; i < size; i++) {
+            await prisma.game.create({
+                data: {
+                    roomCode: `${name}-${i}`,
+                    groupId: group.id,
+                    state: {
+                        customerOrder: [4],
+                        roles: {
+                            RETAILER: { inventory: [12] },
+                            WHOLESALER: { inventory: [12] },
+                            DISTRIBUTOR: { inventory: [12] },
+                            FACTORY: { inventory: [12] },
+                        },
+                    },
+                    orders: {
+                        create: [
+                            { role: "RETAILER", amount: 4, week: -1 },
+                            { role: "WHOLESALER", amount: 4, week: -1 },
+                            { role: "DISTRIBUTOR", amount: 4, week: -1 },
+                            { role: "FACTORY", amount: 4, week: -1 },
+                            { role: "RETAILER", amount: 4, week: 0 },
+                            { role: "WHOLESALER", amount: 4, week: 0 },
+                            { role: "DISTRIBUTOR", amount: 4, week: 0 },
+                            { role: "FACTORY", amount: 4, week: 0 },
+                        ],
+                    },
+                }
+            });
+        }
         response.status(201).json({
             success: true,
-            message: "Game created successfully",
-            gameId: game.id,
-            roomCode: game.roomCode,
+            groupId: group.id,
         });
     }
     catch (error) {
         console.error(error);
-        response.status(500).json({ error: "Server error" });
+        response.status(500).json({ error: "Failed to create group" });
     }
 });
 
@@ -197,6 +201,45 @@ app.post("/api/login", async (request, response) => {
 });
 
 /**
+ * Gets the list of rooms in a group
+ */
+app.get("/api/group/:groupCode", async (request, response) => {
+    const { groupCode } = request.params;
+
+    try {
+        const group = await prisma.gameGroup.findUnique({
+            where: { groupCode },
+            include: { games: { select: { roomCode: true } } },
+        });
+        if (!group) return response.status(404).json({ error: "Group not found" });
+
+        response.json({
+            success: true,
+            games: group.games.map(game => game.roomCode),
+            week: group.week,
+        });
+    }
+    catch (error) {
+        console.error(error);
+        response.status(500).json({ error: "Failed to fetch games in group" });
+    }
+});
+
+/**
+ * Gets the list of existing groups
+ */
+app.get("/api/groups", async (request, response) => {
+    try {
+        const groups = await prisma.gameGroup.findMany({ select: { groupCode: true } });
+        response.json({ groups: groups.map((group) => group.groupCode) });
+    }
+    catch (error) {
+        console.error(error);
+        response.status(500).json({ error: "Failed to list groups" });
+    }
+});
+
+/**
  * Gets the list of existing rooms
  */
 app.get("/api/rooms", async (request, response) => {
@@ -219,13 +262,13 @@ app.get("/api/game/:roomCode", async (request, response) => {
     try {
         const game = await prisma.game.findUnique({
             where: { roomCode },
-            include: { orders: true },
+            include: { orders: true, group: true },
         });
         if (!game) return response.status(404).json({ error: "Game not found" });
 
         response.json({
             roomCode: roomCode,
-            week: game.week,
+            week: game.group.week,
             state: game.state,
         });
     }
@@ -244,14 +287,15 @@ app.get("/api/orderStatus", requireRole(["ADMIN"]), async (request, response) =>
     try {
         const game = await prisma.game.findUnique({
             where: { roomCode },
-            select: { id: true, week: true, state:true },
+            select: { id: true, state: true, group: { select: { week: true } } },
         });
         if (!game) return response.status(404).json({ error: "Game not found" });
+        const week = game.group.week;
 
         const orders = await prisma.order.findMany({
             where: {
                 gameId: game.id,
-                week: game.week,
+                week: week,
             },
             select: { role: true, amount: true },
         });
@@ -268,8 +312,8 @@ app.get("/api/orderStatus", requireRole(["ADMIN"]), async (request, response) =>
             }
         }
 
-        if (game.state.customerOrder.length >= game.week) {
-            status["CUSTOMER"] = { amount: game.state.customerOrder[game.week - 1] };
+        if (game.state.customerOrder.length >= week) {
+            status["CUSTOMER"] = { amount: game.state.customerOrder[week - 1] };
         }
         else {
             status["CUSTOMER"] = { amount: -1 };
@@ -321,28 +365,29 @@ app.get("/api/allOrders", async (request, response) => {
  * Gets the outgoing order in a given week for a particular role
  */
 app.get("/api/outgoingOrder", async (request, response) => {
-    const { roomCode, week, role } = request.query;
+    const { roomCode, role } = request.query;
 
     try {
         const game = await prisma.game.findUnique({
             where: { roomCode },
-            select: { id: true, state: true, week: true },
+            select: { id: true, state: true, group: true },
         });
         if (!game) return response.status(404).json({ error: "Game not found" });
+        const week = game.group.week;
 
         let orderAmount;
-        if (game.week === 1) {
+        if (week === 1) {
             orderAmount = -1; // no previous order
         }
         else if (role === "RETAILER") {
-            orderAmount = game.state.customerOrder[game.week - 2];
+            orderAmount = game.state.customerOrder[week - 2];
         }
         else {
             const roles = ["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY"];
             const order = await prisma.order.findFirst({
                 where: {
                     gameId: game.id,
-                    week: game.week - 1,
+                    week: week - 1,
                     role: roles[roles.indexOf(role) - 1],
                 },
                 select: { amount: true },
@@ -377,50 +422,6 @@ app.post("/api/order", async (request, response) => {
             update: { amount },
             where: { gameId_role_week_key: { gameId: game.id, role, week }},
         });
-
-        const updatedGame = await prisma.game.findUnique({
-            where: { id: game.id },
-            include: { orders: true, users: true },
-        });
-
-        io.to(roomCode).emit("stateUpdate", updatedGame);
-        response.json({ success: true });
-    }
-    catch (error) {
-        console.error(error);
-        response.status(500).json({ error: "Server error" });
-    }
-});
-
-/**
- * Adds next week's customer order
- */
-app.post("/api/customerOrder", requireRole(["ADMIN"]), async (request, response) => {
-    const { roomCode, amount } = request.body;
-
-    try {
-        const game = await prisma.game.findUnique({
-            where: { roomCode },
-            select: { id: true, week: true, state: true },
-        });
-        if (!game) return response.status(404).json({ error: "Game not found" });
-
-        const gameState = game.state;
-
-        // add new order, or update order if one has already been added
-        if (gameState.customerOrder.length < game.week) {
-            gameState.customerOrder.push(amount);
-        }
-        else {
-            gameState.customerOrder[game.week - 1] = amount;
-        }
-
-        const updatedGame = await prisma.game.update({
-            where: { id: game.id },
-            data: { state: gameState },
-        });
-
-        io.emit("stateUpdate", updatedGame);
         response.json({ success: true });
     }
     catch (error) {
@@ -432,7 +433,7 @@ app.post("/api/customerOrder", requireRole(["ADMIN"]), async (request, response)
 /**
  * Adds next week's customer order for many rooms
  */
-app.post("/api/customerOrderMultiple", requireRole(["ADMIN"]), async (request, response) => {
+app.post("/api/customerOrder", requireRole(["ADMIN"]), async (request, response) => {
     const { roomCodes, amount } = request.body;
 
     if (!Array.isArray(roomCodes) || typeof amount !== "number") {
@@ -443,24 +444,31 @@ app.post("/api/customerOrderMultiple", requireRole(["ADMIN"]), async (request, r
         for (const roomCode of roomCodes) {
             const game = await prisma.game.findUnique({
                 where: { roomCode },
-                select: { id: true, week: true, state: true },
+                select: { id: true, group: true, state: true },
             });
             if (!game) continue;
             const gameState = game.state;
+            const week = game.group.week;
 
             // add new order, or update order if one has already been added
-            if (gameState.customerOrder.length < game.week) {
+            if (gameState.customerOrder.length < week) {
                 gameState.customerOrder.push(amount);
             }
             else {
-                gameState.customerOrder[game.week - 1] = amount;
+                gameState.customerOrder[week - 1] = amount;
             }
 
             const updatedGame = await prisma.game.update({
                 where: { id: game.id },
                 data: { state: gameState },
+                include: { group: true },
+
             });
-            io.emit("stateUpdate", updatedGame);
+            io.emit("stateUpdate", {
+                roomCode: updatedGame.roomCode,
+                week: updatedGame.group.week,
+                state: updatedGame.state,
+            });
         }
 
         response.json({ success: true });
@@ -472,74 +480,93 @@ app.post("/api/customerOrderMultiple", requireRole(["ADMIN"]), async (request, r
 });
 
 /**
- * Admins advance the week in a particular room
+ * Admins advance the week in a particular group
  */
 app.post("/api/advanceWeek", requireRole(["ADMIN"]), async (request, response) => {
-    const { roomCode } = request.body;
+    const { groupCode } = request.body;
 
     try {
-        const game = await prisma.game.findUnique({
-            where: { roomCode },
-            select: { id: true, week: true, state: true },
+        const group = await prisma.gameGroup.findUnique({
+            where: { groupCode },
+            include: {
+                games: {
+                    include: {
+                        orders: true
+                    }
+                }
+            },
         });
-        if (!game) return response.status(404).json({ error: "Game not found" });
+        if (!group) return response.status(404).json({ error: "Group not found" });
 
-        const gameId = game.id;
-        const gameState = game.state;
-        const currentWeek = game.week;
+        const currentWeek = group.week;
         const nextWeek = currentWeek + 1;
 
         // demand flow: customer → retailer → wholesaler → distributor → factory
         const roleOrder = ["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY"];
 
-        // inventory starts with last week's values
-        for (const role of roleOrder) {
-            const roleState = gameState.roles[role];
-            const lastInventory = roleState.inventory[roleState.inventory.length - 1] ?? 0;
-            while (roleState.inventory.length < nextWeek) roleState.inventory.push(lastInventory);
-        }
-
-        const orders = await prisma.order.findMany({ where: { gameId } });
-
-        // process arriving orders
-        for (const order of orders) {
-            const roleState = gameState.roles[order.role];
-            if (order.week === currentWeek - 2) {
-                roleState.inventory[nextWeek - 1] += order.amount;
-            }
-        }
-        // process departing orders
-        for (const order of orders) {
-            if (order.role !== "FACTORY" && order.week === currentWeek) {
-                const contributor = roleOrder[roleOrder.indexOf(order.role) + 1];
-                const contributorState = gameState.roles[contributor];
-
-                const currentInventory = contributorState.inventory[nextWeek - 1]; // use nextWeek to account for previous loop
-
-                // update order if there is not enough inventory for a full shipment
-                if (currentInventory < order.amount) {
-                    // calculate how much of order inventory allows for
-                    const departingOrder = order.amount - Math.max(currentInventory, 0);
-
-                    await prisma.order.update({
-                        where: { id: order.id },
-                        data: { amount: departingOrder },
-                    });
-                }
-                contributorState.inventory[nextWeek - 1] = currentInventory - order.amount;
-            }
-        }
-        // process departing order from RETAILER, which immediately go to customer
-        const retailerState = gameState.roles["RETAILER"];
-        retailerState.inventory[nextWeek - 1] = retailerState.inventory[nextWeek - 1] - gameState.customerOrder[currentWeek - 1];
-
-
-        const updatedGame = await prisma.game.update({
-            where: { id: gameId },
-            data: { week: nextWeek, state: gameState },
+        // only update week once
+        const updatedGroup = await prisma.gameGroup.update({
+            where: { id: group.id },
+            data: { week: nextWeek },
         });
 
-        io.to(roomCode).emit("stateUpdate", updatedGame);
+        for (const game of group.games) {
+            const gameState = game.state;
+            const gameId = game.id;
+            const orders = game.orders;
+
+            // inventory starts with last week's values
+            for (const role of roleOrder) {
+                const roleState = gameState.roles[role];
+                const lastInventory = roleState.inventory[roleState.inventory.length - 1] ?? 0;
+                while (roleState.inventory.length < nextWeek) roleState.inventory.push(lastInventory);
+            }
+
+            // process arriving orders
+            for (const order of orders) {
+                const roleState = gameState.roles[order.role];
+                if (order.week === currentWeek - 2) {
+                    roleState.inventory[nextWeek - 1] += order.amount;
+                }
+            }
+            // process departing orders
+            for (const order of orders) {
+                if (order.role !== "FACTORY" && order.week === currentWeek) {
+                    const contributor = roleOrder[roleOrder.indexOf(order.role) + 1];
+                    const contributorState = gameState.roles[contributor];
+
+                    const currentInventory = contributorState.inventory[nextWeek - 1]; // use nextWeek to account for previous loop
+
+                    // update order if there is not enough inventory for a full shipment
+                    if (currentInventory < order.amount) {
+                        // calculate how much of order inventory allows for
+                        const departingOrder = Math.max(currentInventory, 0);
+
+                        await prisma.order.update({
+                            where: { id: order.id },
+                            data: { amount: departingOrder },
+                        });
+                    }
+                    contributorState.inventory[nextWeek - 1] = currentInventory - order.amount;
+                }
+            }
+            // process departing order from RETAILER, which immediately go to customer
+            const retailerState = gameState.roles["RETAILER"];
+            retailerState.inventory[nextWeek - 1] = retailerState.inventory[nextWeek - 1] - gameState.customerOrder[currentWeek - 1];
+
+            const updatedGame = await prisma.game.update({
+                where: { id: gameId },
+                data: { state: gameState },
+                include: { group: true },
+
+            });
+            io.emit("stateUpdate", {
+                roomCode: updatedGame.roomCode,
+                week: updatedGame.group.week,
+                state: updatedGame.state,
+            });
+        }
+
         response.json({ success: true, week: nextWeek });
     }
     catch (error) {

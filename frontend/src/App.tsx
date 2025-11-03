@@ -4,6 +4,7 @@ import { io, Socket } from "socket.io-client";
 import { PlayerGameView } from "./views/PlayerGameView.tsx";
 import { PlayerLobbyView } from "./views/PlayerLobbyView.tsx";
 import { AdminLobbyView } from "./views/AdminLobbyView.tsx";
+import { AdminGroupView } from "./views/AdminGroupView.tsx";
 import { AdminGameView } from "./views/AdminGameView.tsx";
 import "./styles/LobbyView.css";
 
@@ -15,7 +16,9 @@ export default function App() {
     const [token, setToken] = useState<string | null>(null);
     const [role, setRole] = useState<string | null>(null);
     const [roomCode, setRoomCode] = useState<string>("");
+    const [groupCode, setGroupCode] = useState<string>("");
     const [availableRooms, setAvailableRooms] = useState<string[]>([]);
+    const [availableGroups, setAvailableGroups] = useState<string[]>([]);
     const [error, setError] = useState<string>("");
     const [isRegistering, setRegistering] = useState<boolean>(false);
 
@@ -95,11 +98,20 @@ export default function App() {
         
     }
 
-// -------------------- FETCH ROOMS --------------------
+// -------------------- FETCH GROUPS --------------------
     useEffect(() => {
         if (!token) return;
 
-        fetch("/api/rooms", {headers: {Authorization: `Bearer ${token}`}})
+        fetch("/api/groups", {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` }})
+            .then((response) => response.json())
+            .then((data) => setAvailableGroups(data.groups))
+            .catch(() => setError("Failed to load groups"));
+
+        fetch("/api/rooms", {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` }})
             .then((response) => response.json())
             .then((data) => setAvailableRooms(data.rooms))
             .catch(() => setError("Failed to load rooms"));
@@ -107,24 +119,12 @@ export default function App() {
 
 // -------------------- CONNECT SOCKET --------------------
     useEffect(() => {
-        if (!token || !roomCode) return;
-
-        fetch(`/api/game/${roomCode}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        })
-            .then((response) => response.json())
-            .then((data: Game) => setGame(data))
-            .catch(() => setError("Failed to load game"));
-
-        // close any existing socket before reconnecting
-        if (socketReference.current) {
-            socketReference.current.disconnect();
-        }
+        if (!token) return;
+        if (socketReference.current) socketReference.current.disconnect(); // close any existing socket before reconnecting
 
         // initialize socket connection
         const socket = io(import.meta.env.VITE_BACKEND_URL, {
-            query: { roomCode },
-            auth: { token },
+            auth: { token }
         });
         socketReference.current = socket;
 
@@ -148,6 +148,18 @@ export default function App() {
             socket.disconnect();
             socketReference.current = null;
         };
+    }, [token]);
+
+// -------------------- LOAD GAME ON ROOM CHANGE --------------------
+    useEffect(() => {
+        if (!token || !roomCode) return;
+
+        fetch(`/api/game/${roomCode}`, {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` }})
+            .then((response) => response.json())
+            .then((data: Game) => setGame(data))
+            .catch(() => setError("Failed to load game"));
     }, [token, roomCode]);
 
 // ------------- REGISTRATION SCREEN ----------------------
@@ -184,42 +196,66 @@ export default function App() {
         );
     }
 
-// -------------------- LOBBY VIEWS --------------------
-    if (!roomCode) {
-        if (role === "ADMIN") {
+// -------------------- VIEWS --------------------
+    if (role === "ADMIN") {
+        // AdminLobbyView
+        if (!groupCode && !roomCode) {
             return (
                 <AdminLobbyView
                     token={token}
-                    availableRooms={availableRooms}
-                    onRoomSelect={setRoomCode}
-                    refreshRooms={() => {
-                        fetch("/api/rooms", { headers: { Authorization: `Bearer ${token}` } })
+                    availableGroups={availableGroups}
+                    onGroupSelect={(group) => setGroupCode(group)}
+                    refreshGroups={() => {
+                        fetch("/api/groups", {
+                            method: "GET",
+                            headers: { Authorization: `Bearer ${token}` }})
                             .then((response) => response.json())
-                            .then((data) => setAvailableRooms(data.rooms))
-                            .catch(() => setError("Failed to load rooms"));
+                            .then((data) => setAvailableGroups(data.rooms))
+                            .catch(() => setError("Failed to load groups"));
                     }}
                 />
             );
         }
-        else {
+
+        // AdminGroupView
+        if (groupCode && !roomCode) {
             return (
-                <PlayerLobbyView
-                    availableRooms={availableRooms}
-                    onRoomSelect={(selectedRoom, selectedRole) => {
-                        setRoomCode(selectedRoom);
-                        setRole(selectedRole);
-                    }}
+                <AdminGroupView
+                    socket={socketReference.current!}
+                    token={token}
+                    groupCode={groupCode}
+                    onRoomSelect={(room) => setRoomCode(room)}
+                    onExit={() => setGroupCode("")}
                 />
             );
+        }
+
+        // AdminGameView
+        if (roomCode) {
+            if (!game) return <p>Loading game state...</p>;
+            return <AdminGameView
+                socket={socketReference.current!}
+                token={token}
+                game={game}
+                onExit={() => setRoomCode("")}
+            />
         }
     }
 
-// -------------------- GAME VIEWS --------------------
+    // PlayerLobbyView
+    if (!roomCode) {
+        return (
+            <PlayerLobbyView
+                availableRooms={availableRooms}
+                onRoomSelect={(selectedRoom, selectedRole) => {
+                    setRoomCode(selectedRoom);
+                    setRole(selectedRole);
+                }}
+            />
+        );
+    }
+
+    // PlayerGameView
     if (!game) return <p>Loading game state...</p>;
-    if (role === "ADMIN") {
-        return <AdminGameView socket={socketReference.current!} token={token} game={game} />;
-    }
-    else {
-        return <PlayerGameView socket={socketReference.current!} token={token} role={role as Role} game={game} />;
-    }
+    return <PlayerGameView socket={socketReference.current!} token={token} role={role as Role} game={game} />;
 }
