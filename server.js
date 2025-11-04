@@ -328,7 +328,7 @@ app.get("/api/orderStatus", requireRole(["ADMIN"]), async (request, response) =>
 });
 
 /**
- * Gets all orders from a room and the end of the game
+ * Gets all orders from a room
  */
 app.get("/api/allOrders", async (request, response) => {
     const { roomCode } = request.query;

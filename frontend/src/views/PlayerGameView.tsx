@@ -17,6 +17,7 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
 
     const [outgoingOrder, setOutgoingOrder] = useState<string>("");
     const [message, setMessage] = useState<string>("");
+    const [error, setError] = useState<string>("");
     const [showGraphs, setShowGraphs] = useState(false);
 
 // -------------------- CONNECT SOCKET --------------------
@@ -26,6 +27,7 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
 
         const handleStateUpdate = (updatedGame: Game) => {
             if (updatedGame.roomCode === roomCode) {
+                setMessage("Week has been advanced");
                 void getOutgoingOrder();
             }
         };
@@ -67,16 +69,15 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
 
             if (response.ok) {
                 amountInput.value = "";
-                setMessage(`Order of ${amount} submitted successfully!`);
-                setTimeout(() => setMessage(""), 10000);
+                setMessage(`Order of ${amount} submitted successfully! You may change your order until all players have placed order and facilitator has advanced to the next week.`);
             }
             else {
-                setMessage("Failed to submit order.");
+                setError("Failed to submit order.");
             }
         }
         catch (error) {
             console.error(error);
-            setMessage("Server error, please try again.");
+            setError("Server error, please try again.");
         }
     }
 
@@ -114,8 +115,9 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
                     <form onSubmit={submitOrder}>
                         <input name="amount" type="number" placeholder="Order amount" min={0} required />
                         <button type="submit">Place Order</button>
-                        {message && <p className="message">{message}</p>}
                     </form>
+                    {message && <p className="message">{message}</p>}
+                    {error && <p className="error">{error}</p>}
                 </div>
             ) : (
                 <div className="chart-section">

@@ -124,6 +124,8 @@ export function AdminGroupView({ socket, token, groupCode, onRoomSelect, onExit 
         <div className="lobby-container">
             <h2>Admin Game View for ({groupCode})</h2>
 
+            {week && <h3>Current Week: {week}</h3>}
+
             <div className="lobby-grid">
                 <div className="lobby-panel">
                     <h3>Teams in this game</h3>
@@ -160,8 +162,6 @@ export function AdminGroupView({ socket, token, groupCode, onRoomSelect, onExit 
                         </label>
                         <button type="submit">Add Customer Order</button>
                     </form>
-
-                    {week && <p>Current Week: {week}</p>}
 
                     <button onClick={advanceWeek}>Advance Week</button>
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Game } from "types";
+import type { Role, Game } from "types";
 import { GameGraphs } from "./GameGraphView";
 import "../styles/GameView.css";
 import { Socket } from "socket.io-client";
@@ -22,11 +22,16 @@ export function AdminGameView({ socket, token, game, onExit }: Props) {
         FACTORY: { amount: -1 },
         CUSTOMER: { amount: -1 },
     });
+    const [orders, setOrders] = useState<Record<string, Record<string, number>>>({
+        RETAILER: {},
+        WHOLESALER: {},
+        DISTRIBUTOR: {},
+        FACTORY: {},
+    });
 
 // -------------------- CONFIRM ORDER STATUSES --------------------
     async function getOrderStatus() {
         try {
-            // check team orders
             const response = await fetch(`/api/orderStatus?roomCode=${roomCode}`, {
                 method: "GET",
                 headers: { Authorization: `Bearer ${token}` },
@@ -40,11 +45,30 @@ export function AdminGameView({ socket, token, game, onExit }: Props) {
         }
     }
 
+// -------------------- GATHER ALL ORDER DATA --------------------
+    async function getAllOrders() {
+        try {
+            const response = await fetch(`/api/allOrders?roomCode=${roomCode}`, {
+                method: "GET",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!response.ok) throw new Error("Failed to fetch all orders");
+            const data = await response.json();
+            if (data.success) setOrders(data.orders);
+
+        }
+        catch (error) {
+            console.error("Failed to retrieve all game orders", error);
+        }
+    }
+
 // -------------------- CONNECT SOCKET -----------
     useEffect(() => {
+        void getOrderStatus();
+        void getAllOrders();
+
         if (!socket || !socket.connected) return;
         socket.emit("joinRoom", roomCode);
-        void getOrderStatus();
 
         const handleStateUpdate = (updatedGame: Game) => {
             if (updatedGame.roomCode === roomCode) {
@@ -56,6 +80,7 @@ export function AdminGameView({ socket, token, game, onExit }: Props) {
                     CUSTOMER: { amount: -1 },
                 });
                 void getOrderStatus();
+                void getAllOrders();
             }
         };
 
@@ -81,10 +106,9 @@ export function AdminGameView({ socket, token, game, onExit }: Props) {
         <div className="game-view-container">
             <h2>Facilitator Panel - Team: {roomCode}</h2>
             <button onClick={onExit}>Return to Full Game View</button>
-
             {!showGraphs ? (
                 <div>
-                    <p>Current week: {week}</p>
+                    <h3>Current week: {week}</h3>
                     <h3>Order Status</h3>
                     <ul>
                         {["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY", "CUSTOMER"].map((role) => (
@@ -100,7 +124,38 @@ export function AdminGameView({ socket, token, game, onExit }: Props) {
                     </ul>
 
                     <h3>Full Game State</h3>
-                    <pre>{JSON.stringify(gameState, null, 2)}</pre>
+                    {gameState && <div style={{overflowX: "auto"}}>
+                        <table className="game-overview-table">
+                            <thead>
+                            <tr>
+                                <th>Week</th>
+                                {["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY"].map((role) => (
+                                    <th key={role}>{role}</th>
+                                ))}
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {[...Array(week)].map((_, i) => {
+                                const weekIndex = i + 1;
+                                return (
+                                    <tr key={weekIndex}>
+                                        <td>{weekIndex}</td>
+                                        {["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY"].map((role) => {
+                                            const r = role as Role;
+                                            const inventory = gameState.roles[r]?.inventory[i] ?? "-";
+                                            const orderAmount = orders[role]?.[weekIndex.toString()] ?? "-";
+                                            return (
+                                                <td key={role}>
+                                                    Inventory: {inventory} | Amount Ordered: {orderAmount}
+                                                </td>
+                                            );
+                                        })}
+                                    </tr>
+                                );
+                            })}
+                            </tbody>
+                        </table>
+                    </div>}
                 </div>
             ) : (
                 <div className="chart-section">
