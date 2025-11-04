@@ -44,7 +44,6 @@ export function AdminGroupView({ socket, token, groupCode, onRoomSelect, onExit 
     useEffect(() => {
         if (selectedGame && socket) {
             socket.emit("joinRoom", selectedGame);
-            console.log("Joined room", selectedGame);
         }
     }, [socket, selectedGame]);
 

@@ -61,7 +61,6 @@ export default function App() {
         }
         const data = await response.json();
         document.cookie = "role=" + data.role + "_token=" + data.token;
-        console.log(document.cookie);
         setToken(data.token);
         setRole(data.role);
         setError("");
@@ -129,22 +128,16 @@ export default function App() {
         socketReference.current = socket;
 
         // event listeners
-        socket.on("connect", () => {
-            console.log("Connected to WebSocket:", socket.id);
-        });
-        socket.on("disconnect", (reason) => {
-            console.log("Disconnected from WebSocket:", reason);
-        });
+        socket.on("connect", () => {});
+        socket.on("disconnect", () => {});
         socket.on("error", (msg) => {
             console.error("Socket error:", msg);
         });
         socket.on("stateUpdate", (updatedGame: Game) => {
-            console.log("Received state update:", updatedGame);
             setGame(updatedGame);
         });
 
         return () => {
-            console.log("Cleaning up socket connection...");
             socket.disconnect();
             socketReference.current = null;
         };
