@@ -501,6 +501,14 @@ app.post("/api/advanceWeek", requireRole(["ADMIN"]), async (request, response) =
         const currentWeek = group.week;
         const nextWeek = currentWeek + 1;
 
+        // make sure all four orders are in before proceeding
+        for (const game of group.games) {
+            const orderCount = game.orders.filter((order) => order.week === currentWeek).length;
+            if (orderCount < 4) {
+                return response.status(400).json({error: "Some teams have not placed their orders"});
+            }
+        }
+
         // demand flow: customer → retailer → wholesaler → distributor → factory
         const roleOrder = ["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY"];
 
