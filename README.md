@@ -19,3 +19,6 @@ The simulation models supply chain dynamics and decision-making across multiple 
 - **Backend:** Node.js, Express, Prisma, PostgreSQL  
 - **WebSocket Communication:** Socket.IO  
 - **Hosting:** AWS EC2  
+
+## Logo attribution
+Supply Chain by Happy Girl from <a href="https://thenounproject.com/browse/icons/term/supply-chain/" target="_blank" title="Supply Chain Icons">Noun Project</a> (CC BY 3.0)
