@@ -15,6 +15,9 @@ async function handleLogout(){
 export function AdminLobbyView({ token, availableGroups, onGroupSelect, refreshGroups }: Props) {
     const [newGroupSize, setNewGroupSize] = useState<number>(1);
     const [newGroupName, setNewGroupName] = useState<string>("");
+    const [pattern, setPattern] = useState<"oneSpike"|"constant"|"manual">("oneSpike");
+    const [baseOrder, setBaseOrder] = useState<number>(4);
+    const [weeksUntilSpike, setWeeksUntilSpike] = useState<number>(4);
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
 
@@ -28,7 +31,7 @@ export function AdminLobbyView({ token, availableGroups, onGroupSelect, refreshG
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ size: newGroupSize, name: newGroupName }),
+                body: JSON.stringify({ size: newGroupSize, name: newGroupName, pattern, baseOrder, weeksUntilSpike }),
             });
             if (!response.ok) throw new Error("Failed to create group");
             setMessage(`Created group ${newGroupName} with ${newGroupSize} games`);
@@ -67,6 +70,36 @@ export function AdminLobbyView({ token, availableGroups, onGroupSelect, refreshG
                                 required
                             />
                         </label>
+                        <label>
+                            Customer order pattern:
+                            <select value={pattern} onChange={(event) => setPattern(event.target.value as any)}>
+                                <option value="oneSpike">One Spike</option>
+                                <option value="constant">Constant</option>
+                                <option value="manual">Manual</option>
+                            </select>
+                        </label>
+                        <label>
+                            Base customer order:
+                            <input
+                                type="number"
+                                min={1}
+                                placeholder="Set base customer order"
+                                value={baseOrder}
+                                onChange={(event) => setBaseOrder(Number(event.target.value))}
+                                required
+                            />
+                        </label>
+                        {pattern === "oneSpike" &&
+                            <label>
+                                Weeks until customer orders spike:
+                                <input
+                                    type="number"
+                                    min={1}
+                                    placeholder="Set weeks until orders spike"
+                                    value={weeksUntilSpike}
+                                    onChange={(event) => setWeeksUntilSpike(Number(event.target.value))}
+                                />
+                            </label>}
                         <button type="submit">Create a new game</button>
                     </form>
 
@@ -80,7 +113,7 @@ export function AdminLobbyView({ token, availableGroups, onGroupSelect, refreshG
                 </div>
                 <div className="lobby-panel">
                     <h3>Or join an existing game</h3>
-                    {availableGroups.length === 0 ? (
+                    {!availableGroups || availableGroups.length === 0 ? (
                         <p>No active games</p>
                     ) : (
                         <ul>

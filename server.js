@@ -110,7 +110,24 @@ app.post("/api/showGraphs", (request, response) => {
  * Generates a group of a particular number of rooms
  */
 app.post("/api/createGroup", requireRole([Role.ADMIN]), async (request, response) => {
-    const { size, name } = request.body;
+    const { size, name, pattern, baseOrder, weeksUntilSpike } = request.body;
+
+    // generate customer orders
+    const defaultWeeks = 50;
+    const customerOrders = [];
+    if (pattern === "oneSpike") {
+        for (let i = 0; i < weeksUntilSpike; i++) customerOrders.push(baseOrder);
+        for (let i = 0; i < defaultWeeks - weeksUntilSpike; i++) customerOrders.push(2 * baseOrder);
+    }
+    else if (pattern === "constant") {
+        for (let i = 0; i < defaultWeeks; i++) customerOrders.push(baseOrder);
+    }
+    else if (pattern === "manual") {
+        customerOrders.push(baseOrder);
+    }
+    else {
+        customerOrders.push(baseOrder); // redundant, but I don't trust not having it
+    }
 
     try {
         const group = await prisma.gameGroup.create({
@@ -123,7 +140,7 @@ app.post("/api/createGroup", requireRole([Role.ADMIN]), async (request, response
                     roomCode: `${name}-${i}`,
                     groupId: group.id,
                     state: {
-                        customerOrder: [4],
+                        customerOrder: customerOrders,
                         roles: {
                             RETAILER: { inventory: [12] },
                             WHOLESALER: { inventory: [12] },

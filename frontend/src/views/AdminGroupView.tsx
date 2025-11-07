@@ -160,7 +160,7 @@ export function AdminGroupView({ socket, token, groupCode, onRoomSelect, onExit 
                                 required
                             />
                         </label>
-                        <button type="submit">Add Customer Order</button>
+                        <button type="submit">Update or Add Customer Order</button>
                     </form>
 
                     <button onClick={advanceWeek}>Advance Week</button>

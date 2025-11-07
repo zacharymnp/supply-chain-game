@@ -203,7 +203,7 @@ export default function App() {
                             method: "GET",
                             headers: { Authorization: `Bearer ${token}` }})
                             .then((response) => response.json())
-                            .then((data) => setAvailableGroups(data.rooms))
+                            .then((data) => setAvailableGroups(data.groups))
                             .catch(() => setError("Failed to load groups"));
                     }}
                 />
