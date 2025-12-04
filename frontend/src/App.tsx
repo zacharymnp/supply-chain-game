@@ -49,7 +49,7 @@ export default function App() {
         const form = event.currentTarget;
         const username = (form.elements.namedItem("username") as HTMLInputElement).value;
         const password = (form.elements.namedItem("password") as HTMLInputElement).value;
-        const response = await fetch("/api/login", {
+        const response = await fetch("/api/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username, password }),
@@ -81,7 +81,7 @@ export default function App() {
         if(password === password2){
             setRegistering(false); 
             setError("");
-            await fetch("/api/register", {
+            await fetch("/api/auth/register", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -108,7 +108,7 @@ export default function App() {
             .then((data) => setAvailableGroups(data.groups))
             .catch(() => setError("Failed to load groups"));
 
-        fetch("/api/rooms", {
+        fetch("/api/games/rooms", {
             method: "GET",
             headers: { Authorization: `Bearer ${token}` }})
             .then((response) => response.json())
@@ -147,7 +147,7 @@ export default function App() {
     useEffect(() => {
         if (!token || !roomCode) return;
 
-        fetch(`/api/game/${roomCode}`, {
+        fetch(`/api/games/${roomCode}`, {
             method: "GET",
             headers: { Authorization: `Bearer ${token}` }})
             .then((response) => response.json())

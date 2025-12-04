@@ -41,7 +41,7 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
 
 // -------------------- PROCESS SERVER SENT EVENTS --------------------
     useEffect(() => {
-        const eventSource = new EventSource(`/api/events/${roomCode}`);
+        const eventSource = new EventSource(`/api/sse/events/${roomCode}`);
         eventSource.addEventListener("showGraphs", (event) => {
             const data = JSON.parse((event as any).data);
             setShowGraphs(data.show);
@@ -58,7 +58,7 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
         const amount = Number(amountInput.value);
 
         try {
-            const response = await fetch("/api/order", {
+            const response = await fetch("/api/orders/order", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -84,7 +84,7 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
 // -------------------- GET OUTGOING ORDER --------------------
     async function getOutgoingOrder() {
         try {
-            const response = await fetch(`/api/outgoingOrder?roomCode=${roomCode}&role=${role}`, {
+            const response = await fetch(`/api/orders/outgoingOrder?roomCode=${roomCode}&role=${role}`, {
                 method: "GET",
                 headers: { Authorization: `Bearer ${token}` },
             });

@@ -32,7 +32,7 @@ export function AdminGameView({ socket, token, game, onExit }: Props) {
 // -------------------- CONFIRM ORDER STATUSES --------------------
     async function getOrderStatus() {
         try {
-            const response = await fetch(`/api/orderStatus?roomCode=${roomCode}`, {
+            const response = await fetch(`/api/orders/orderStatus?roomCode=${roomCode}`, {
                 method: "GET",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -48,7 +48,7 @@ export function AdminGameView({ socket, token, game, onExit }: Props) {
 // -------------------- GATHER ALL ORDER DATA --------------------
     async function getAllOrders() {
         try {
-            const response = await fetch(`/api/allOrders?roomCode=${roomCode}`, {
+            const response = await fetch(`/api/orders/allOrders?roomCode=${roomCode}`, {
                 method: "GET",
                 headers: { Authorization: `Bearer ${token}` },
             });

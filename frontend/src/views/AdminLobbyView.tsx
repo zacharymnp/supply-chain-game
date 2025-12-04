@@ -25,7 +25,7 @@ export function AdminLobbyView({ token, availableGroups, onGroupSelect, refreshG
     async function createGroup(event: React.FormEvent) {
         event.preventDefault();
         try {
-            const response = await fetch(`/api/createGroup`, {
+            const response = await fetch(`/api/groups/createGroup`, {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${token}`,

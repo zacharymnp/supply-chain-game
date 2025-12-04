@@ -21,7 +21,7 @@ export function AdminGroupView({ socket, token, groupCode, onRoomSelect, onExit 
 // -------------------- LOAD GAMES IN GROUP --------------------
     async function loadGroupData() {
         try {
-            const response = await fetch(`/api/group/${groupCode}`, {
+            const response = await fetch(`/api/groups/${groupCode}`, {
                 method: "GET",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -54,7 +54,7 @@ export function AdminGroupView({ socket, token, groupCode, onRoomSelect, onExit 
             let allOrdersIn = true;
 
             for (const room of games) {
-                const response = await fetch(`/api/orderStatus?roomCode=${room}`, {
+                const response = await fetch(`/api/orders/orderStatus?roomCode=${room}`, {
                     method: "GET",
                     headers: { Authorization: `Bearer ${token}` },
                 });
@@ -73,7 +73,7 @@ export function AdminGroupView({ socket, token, groupCode, onRoomSelect, onExit 
                 setTimeout(() => setMessage(""), 10000);
             }
             else {
-                const response = await fetch("/api/advanceWeek", {
+                const response = await fetch("/api/orders/advanceWeek", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -97,7 +97,7 @@ export function AdminGroupView({ socket, token, groupCode, onRoomSelect, onExit 
     async function addCustomerOrder(event: React.FormEvent) {
         event.preventDefault();
         try {
-            const response = await fetch("/api/customerOrder", {
+            const response = await fetch("/api/orders/customerOrder", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

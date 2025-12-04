@@ -37,7 +37,7 @@ export function GameGraphs({ token, game }: Props) {
 // -------------------- GET ORDER DATA --------------------
     async function getOrders() {
         try {
-            const response = await fetch(`/api/allOrders?roomCode=${roomCode}`, {
+            const response = await fetch(`/api/orders/allOrders?roomCode=${roomCode}`, {
                 method: "GET",
                 headers: { Authorization: `Bearer ${token}` },
             });
