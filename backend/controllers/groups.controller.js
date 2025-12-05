@@ -12,8 +12,11 @@ exports.createGroup = async (request, response) => {
 
 exports.getGroup = async (request, response) => {
     try {
-        const result = await groupService.getGroup(request.params.groupCode);
-        response.status(200).json(result);
+        const group = await groupService.getGroup(request.params.groupCode);
+        response.status(200).json({
+            week: group.week,
+            games: group.games.map(game => game.roomCode),
+        });
     }
     catch {
         response.status(404).json({ error: "Group not found" });

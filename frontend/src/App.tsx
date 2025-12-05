@@ -105,14 +105,14 @@ export default function App() {
             method: "GET",
             headers: { Authorization: `Bearer ${token}` }})
             .then((response) => response.json())
-            .then((data) => setAvailableGroups(data.groups))
+            .then((groups: { groupCode: string }[]) => setAvailableGroups(groups.map(group => group.groupCode)))
             .catch(() => setError("Failed to load groups"));
 
         fetch("/api/games/rooms", {
             method: "GET",
             headers: { Authorization: `Bearer ${token}` }})
             .then((response) => response.json())
-            .then((data) => setAvailableRooms(data.rooms))
+            .then((rooms: { roomCode: string }[]) => setAvailableRooms(rooms.map(room => room.roomCode)))
             .catch(() => setError("Failed to load rooms"));
     }, [token]);
 

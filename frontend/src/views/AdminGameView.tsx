@@ -93,7 +93,7 @@ export function AdminGameView({ socket, token, game, onExit }: Props) {
 
 // -------------------- PROCESS SERVER SENT EVENTS --------------------
     useEffect(() => {
-        const eventSource = new EventSource(`/api/events/${roomCode}`);
+        const eventSource = new EventSource(`/api/sse/events/${roomCode}`);
         eventSource.addEventListener("showGraphs", (event) => {
             const data = JSON.parse((event as any).data);
             setShowGraphs(data.show);
