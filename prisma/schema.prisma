@@ -49,6 +49,7 @@ model Order {
   gameId    Int
   role      Role
   amount    Int
+  backlog   Int      @default(0)
   week      Int
   createdAt DateTime @default(now())
   game      Game     @relation(fields: [gameId], references: [id])

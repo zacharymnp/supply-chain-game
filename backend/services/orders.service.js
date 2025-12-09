@@ -44,9 +44,9 @@ exports.getAllOrders = async roomCode => {
     });
 
     const map = {};
-    for (const o of orders) {
-        if (!map[o.role]) map[o.role] = {};
-        if (o.week > 0) map[o.role][o.week] = o.amount;
+    for (const order of orders) {
+        if (!map[order.role]) map[order.role] = {};
+        if (order.week > 0) map[order.role][order.week] = order.amount;
     }
 
     return map;
@@ -140,10 +140,10 @@ exports.advanceWeek = async groupCode => {
     const currentWeek = group.week;
     const nextWeek = currentWeek + 1;
 
-    // ensure all 4 orders exist
+    // make sure all four orders are in before proceeding
     for (const game of group.games) {
-        const count = game.orders.filter(o => o.week === currentWeek).length;
-        if (count < 4) {
+        const orderCount  = game.orders.filter(order => order.week === currentWeek).length;
+        if (orderCount < 4) {
             throw new Error("Some teams have not placed their orders");
         }
     }
@@ -158,41 +158,61 @@ exports.advanceWeek = async groupCode => {
         const state = game.state;
         const orders = game.orders;
 
-        // carry over inventories
+        // inventory starts with last week's values
         for (const role of roleOrder) {
-            const rs = state.roles[role];
-            const lastInv = rs.inventory[rs.inventory.length - 1] ?? 0;
-            while (rs.inventory.length < nextWeek) rs.inventory.push(lastInv);
+            const roleState = state.roles[role];
+            const lastInventory = roleState.inventory[roleState.inventory.length - 1] ?? 0;
+            while (roleState.inventory.length < nextWeek) roleState.inventory.push(lastInventory);
         }
 
-        // arriving orders
-        for (const o of orders) {
-            if (o.week === currentWeek - 2) {
-                state.roles[o.role].inventory[nextWeek - 1] += o.amount;
+        // process arriving orders
+        for (const order of orders) {
+            if (order.week === currentWeek - 2 && order.role !== "FACTORY" || order.week === currentWeek - 1 && order.role === "FACTORY") { // TODO: is factory actually supposed to have less delay?
+                const roleState = state.roles[order.role];
+                const inventory = roleState.inventory[nextWeek - 1];
+                if (inventory < 0) { // TODO: check this
+                    if (order.role !== "RETAILER") {
+                        await prisma.order.update({
+                            where: {
+                                gameId_role_week_key: {
+                                    gameId: game.id,
+                                    role: roleOrder[roleOrder.indexOf(order.role) - 1],
+                                    week: currentWeek,
+                                }
+                            },
+                            data: { backlog: Math.min(-inventory, order.amount + order.backlog) },
+                        });
+                    }
+                }
+                roleState.inventory[nextWeek - 1] += order.amount + order.backlog; // TODO: check this
             }
         }
 
-        // departing orders through chain
-        for (const o of orders) {
-            if (o.role !== "FACTORY" && o.week === currentWeek) {
-                const contributor = roleOrder[roleOrder.indexOf(o.role) + 1];
-                const cs = state.roles[contributor];
-                const inv = cs.inventory[nextWeek - 1];
+        // process departing orders
+        for (const order of orders) {
+            if (order.week === currentWeek && order.role !== "FACTORY") {
+                const contributor = roleOrder[roleOrder.indexOf(order.role) + 1];
+                const contributorState = state.roles[contributor];
+                const currentInventory = contributorState.inventory[nextWeek - 1]; // use nextWeek to account for previous loop
 
-                if (inv < o.amount) {
+                // update order if there is not enough inventory for a full shipment
+                if (currentInventory < order.amount) { // TODO: check
+                    // calculate how much of order inventory allows for
+                    const departingOrder = Math.max(currentInventory, 0); // TODO: check this
+
                     await prisma.order.update({
-                        where: { id: o.id },
-                        data: { amount: Math.max(inv, 0) },
+                        where: { id: order.id },
+                        data: { amount: departingOrder }, // TODO: check this
                     });
                 }
 
-                cs.inventory[nextWeek - 1] = inv - o.amount;
+                contributorState.inventory[nextWeek - 1] = currentInventory - order.amount;
             }
         }
 
-        // retailer sells to customer
-        const rs = state.roles["RETAILER"];
-        rs.inventory[nextWeek - 1] -= state.customerOrder[currentWeek - 1];
+        // process departing order from RETAILER, which immediately go to customer
+        const retailerState = state.roles["RETAILER"];
+        retailerState.inventory[nextWeek - 1] = retailerState.inventory[nextWeek - 1] - state.customerOrder[currentWeek - 1];
 
         const updatedGame = await prisma.game.update({
             where: { id: game.id },
