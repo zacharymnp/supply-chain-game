@@ -119,6 +119,26 @@ export function AdminGroupView({ socket, token, groupCode, onRoomSelect, onExit 
         }
     }
 
+// -------------------- TRIGGER SHOW GRAPHS SSE --------------------
+    async function showGraphsForAllRooms() {
+        try {
+            const response = await fetch("/api/sse/showGraphs", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ roomCodes: games }),
+            });
+            if (!response.ok) throw new Error("Failed to trigger showGraphs SSE");
+            setMessage("Triggered graph view for all rooms.");
+        }
+        catch (error) {
+            console.error("SSE trigger failed", error);
+            setError("Failed to trigger showGraphs SSE.");
+        }
+    }
+
 // -------------------- ADMIN GROUP VIEW --------------------
     return (
         <div className="lobby-container">
@@ -164,6 +184,8 @@ export function AdminGroupView({ socket, token, groupCode, onRoomSelect, onExit 
                     </form>
 
                     <button onClick={advanceWeek}>Advance Week</button>
+
+                    <button className="critical-button" onClick={showGraphsForAllRooms}>Show Graphs in All Games</button>
 
                     {message && <p className="message">{message}</p>}
                     {error && <p className="error">{error}</p>}

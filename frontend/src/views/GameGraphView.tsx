@@ -99,78 +99,85 @@ export function GameGraphs({ token, game }: Props) {
 // -------------------- GRAPH VIEW --------------------
     return (
         <div className="chart-container">
-            <h3>Costs</h3>
-            <table style={{ borderCollapse: "collapse", width: "100%" }}>
-                <thead>
-                <tr>
-                    <th style={{ border: "1px solid #ccc", padding: "8px" }}>Role</th>
-                    <th style={{ border: "1px solid #ccc", padding: "8px" }}>Total Cost ($)</th>
-                </tr>
-                </thead>
-                <tbody>
-                {roles.map((role) => (
-                    <tr key={role}>
-                        <td style={{ border: "1px solid #ccc", padding: "8px" }}>{role}</td>
-                        <td style={{ border: "1px solid #ccc", padding: "8px" }}>
-                            {costs[role].toFixed(2)}
-                        </td>
+            <h3 className="chart-title">Costs</h3>
+            <div className="costs-panel">
+                <table className="costs-table">
+                    <thead>
+                    <tr>
+                        <th>Role</th>
+                        <th>Total Cost ($)</th>
                     </tr>
+                    </thead>
+                    <tbody>
+                    {roles.map((role) => (
+                        <tr key={role}>
+                            <td>{role}</td>
+                            <td>{costs[role].toFixed(2)}</td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 className="chart-title">Inventory by Week</h3>
+            <div className="chart-panel inventory-panel">
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 12, right: 18, left: 8, bottom: 6 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="week" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        {inventoryLines
+                            .filter((line) => visibleInventoryLines.includes(line.key))
+                            .map((line) => (
+                                <Line key={line.key} type="monotone" dataKey={line.key} stroke={line.color} />
+                            ))}
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+            <div className="chart-legend">
+                {inventoryLines.map((line) => (
+                    <label key={line.key} className="chart-legend-item">
+                        <input
+                            type="checkbox"
+                            checked={visibleInventoryLines.includes(line.key)}
+                            onChange={() => toggleInventoryLine(line.key)}
+                        />
+                        {line.label}
+                    </label>
                 ))}
-                </tbody>
-            </table>
+            </div>
 
-            <h3>Inventory by Role</h3>
-            <ResponsiveContainer width="100%" className="inventory-chart">
-                <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="week" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    {inventoryLines
-                        .filter((line) => visibleInventoryLines.includes(line.key))
-                        .map((line) => (
-                            <Line key={line.key} type="monotone" dataKey={line.key} stroke={line.color} />
-                        ))}
-                </LineChart>
-            </ResponsiveContainer>
-            {inventoryLines.map((line) => (
-                <label key={line.key}>
-                    <input
-                        type="checkbox"
-                        checked={visibleInventoryLines.includes(line.key)}
-                        onChange={() => toggleInventoryLine(line.key)}
-                    />
-                    {line.label}
-                </label>
-            ))}
-
-            <h3>Orders by Role</h3>
-            <ResponsiveContainer width="100%" className="customer-order-chart">
-                <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="week" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    {orderLines
-                        .filter((line) => visibleOrderLines.includes(line.key))
-                        .map((line) => (
-                            <Line key={line.key} type="monotone" dataKey={line.key} stroke={line.color} />
-                        ))}
-                </LineChart>
-            </ResponsiveContainer>
-            {orderLines.map((line) => (
-                <label key={line.key}>
-                    <input
-                        type="checkbox"
-                        checked={visibleOrderLines.includes(line.key)}
-                        onChange={() => toggleOrderLine(line.key)}
-                    />
-                    {line.label}
-                </label>
-            ))}
-
+            <h3 className="chart-title">Orders by Week</h3>
+            <div className="chart-panel orders-panel">
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 12, right: 18, left: 8, bottom: 6 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="week" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        {orderLines
+                            .filter((line) => visibleOrderLines.includes(line.key))
+                            .map((line) => (
+                                <Line key={line.key} type="monotone" dataKey={line.key} stroke={line.color} />
+                            ))}
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+            <div className="chart-legend">
+                {orderLines.map((line) => (
+                    <label key={line.key} className="chart-legend-item">
+                        <input
+                            type="checkbox"
+                            checked={visibleOrderLines.includes(line.key)}
+                            onChange={() => toggleOrderLine(line.key)}
+                        />
+                        {line.label}
+                    </label>
+                ))}
+            </div>
         </div>
     );
 }
